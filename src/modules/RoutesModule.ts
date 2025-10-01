@@ -9,7 +9,7 @@ export interface RouteConfig {
 
 export class RoutesModule extends BaseServerModule {
   name = "Routes";
-  priority = 10; // Se ejecuta después de los middlewares básicos
+  priority = 10; // Executed after basic middlewares
 
   private routes: RouteConfig[];
 

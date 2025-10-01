@@ -24,10 +24,10 @@ export class BootstrapServer {
     );
 
     if (existingModuleIndex !== -1) {
-      // Reemplazar el módulo existente
+      // Replace existing module
       this.modules[existingModuleIndex] = module;
     } else {
-      // Agregar el nuevo módulo
+      // Add new module
       this.modules.push(module);
     }
     return this;
@@ -39,10 +39,10 @@ export class BootstrapServer {
         (m) => m.name === module.name,
       );
       if (existingModuleIndex !== -1) {
-        // Reemplazar el módulo existente
+        // Replace existing module
         this.modules[existingModuleIndex] = module;
       } else {
-        // Agregar el nuevo módulo
+        // Add new module
         this.modules.push(module);
       }
     }
@@ -86,7 +86,7 @@ export class BootstrapServer {
     try {
       console.log("Starting graceful shutdown...");
 
-      // Ejecutar shutdown de módulos en orden inverso
+      // Execute module shutdown in reverse order
       const reversedModules = [...this.modules].reverse();
 
       for (const module of reversedModules) {
@@ -101,7 +101,7 @@ export class BootstrapServer {
         }
       }
 
-      // Detener servicios en orden inverso
+      // Stop services in reverse order
       const reversedServices = [...this.services].reverse();
 
       for (const service of reversedServices) {
@@ -116,7 +116,7 @@ export class BootstrapServer {
         }
       }
 
-      // Cerrar servidor HTTP
+      // Close HTTP server
       if (this.httpServer) {
         console.log("Closing HTTP server...");
         await new Promise<void>((resolve) => {
@@ -133,7 +133,7 @@ export class BootstrapServer {
     }
   }
 
-  // Métodos de conveniencia para acceder a módulos específicos
+  // Convenience methods to access specific modules
   getModule<T extends BaseServerModule>(
     moduleClass: new (...args: any[]) => T,
   ): T | undefined {
@@ -161,7 +161,7 @@ export class BootstrapServer {
   }
 
   private async initializeServerModules(): Promise<void> {
-    // Ordenar módulos por prioridad (menor número = mayor prioridad)
+    // Sort modules by priority (lower number = higher priority)
     this.modules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
 
     console.log("Initializing server modules in priority order:");
