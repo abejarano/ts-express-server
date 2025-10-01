@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import { Server as HttpServer } from "http";
 import { BaseServerModule, BaseServerService } from "./abstract";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 
 export class BootstrapServer {
   private readonly app: Express;
@@ -15,6 +16,7 @@ export class BootstrapServer {
     this.app = express();
     this.app.use(express.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
     this.app.set("port", port);
   }
 
