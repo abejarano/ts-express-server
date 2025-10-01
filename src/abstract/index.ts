@@ -1,2 +1,2 @@
-export * from "./ServiceModule";
+export * from "./ServerService";
 export * from "./ServerModule";

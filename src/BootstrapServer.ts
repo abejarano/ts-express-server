@@ -1,21 +1,24 @@
 import express, { Express } from "express";
 import { Server as HttpServer } from "http";
-import { ServerModule, ServiceModule } from "./abstract";
+import { BaseServerModule, BaseServerService } from "./abstract";
+import bodyParser from "body-parser";
 
 export class BootstrapServer {
   private readonly app: Express;
   private readonly port: number;
   private httpServer?: HttpServer;
-  private modules: ServerModule[] = [];
-  private services: ServiceModule[] = [];
+  private modules: BaseServerModule[] = [];
+  private services: BaseServerService[] = [];
 
   constructor(port: number) {
     this.port = port;
     this.app = express();
+    this.app.use(express.json());
+    this.app.use(bodyParser.urlencoded({ extended: true }));
     this.app.set("port", port);
   }
 
-  addModule(module: ServerModule): BootstrapServer {
+  addModule(module: BaseServerModule): BootstrapServer {
     const existingModuleIndex = this.modules.findIndex(
       (m) => m.name === module.name,
     );
@@ -30,7 +33,7 @@ export class BootstrapServer {
     return this;
   }
 
-  addModules(modules: ServerModule[]): BootstrapServer {
+  addModules(modules: BaseServerModule[]): BootstrapServer {
     for (const module of modules) {
       const existingModuleIndex = this.modules.findIndex(
         (m) => m.name === module.name,
@@ -46,12 +49,12 @@ export class BootstrapServer {
     return this;
   }
 
-  addService(service: ServiceModule): BootstrapServer {
+  addService(service: BaseServerService): BootstrapServer {
     this.services.push(service);
     return this;
   }
 
-  addServices(services: ServiceModule[]): BootstrapServer {
+  addServices(services: BaseServerService[]): BootstrapServer {
     this.services.push(...services);
     return this;
   }
@@ -64,16 +67,8 @@ export class BootstrapServer {
     return this.httpServer;
   }
 
-  async initialize(): Promise<void> {
-    // Inicializar servicios primero
-    await this.initializeServices();
-
-    // Luego inicializar módulos del servidor
-    await this.initializeServerModules();
-  }
-
   async start(): Promise<void> {
-    await this.initialize();
+    await this.initializeServerModules();
 
     return new Promise((resolve) => {
       this.httpServer = this.app.listen(this.port, () => {
@@ -82,6 +77,8 @@ export class BootstrapServer {
         this.setupGracefulShutdown();
         resolve();
       });
+
+      this.initializeServices(this.httpServer);
     });
   }
 
@@ -137,7 +134,7 @@ export class BootstrapServer {
   }
 
   // Métodos de conveniencia para acceder a módulos específicos
-  getModule<T extends ServerModule>(
+  getModule<T extends BaseServerModule>(
     moduleClass: new (...args: any[]) => T,
   ): T | undefined {
     return this.modules.find((m) => m instanceof moduleClass) as T | undefined;
@@ -147,13 +144,12 @@ export class BootstrapServer {
     return this.modules.some((m) => m instanceof moduleClass);
   }
 
-  private async initializeServices(): Promise<void> {
+  private async initializeServices(http: HttpServer): Promise<void> {
     console.log("Starting services...");
 
     for (const service of this.services) {
       try {
-        console.log(`Starting service: ${service.name}`);
-        await service.start();
+        await service.start(http);
         console.log(`Service started: ${service.name}`);
       } catch (error) {
         console.error(`Failed to start service ${service.name}:`, error);

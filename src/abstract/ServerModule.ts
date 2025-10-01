@@ -1,13 +1,6 @@
 import { Express } from "express";
 
-export interface ServerModule {
-  name: string;
-  priority?: number;
-  init(app: Express): Promise<void> | void;
-  shutdown?(): Promise<void> | void;
-}
-
-export abstract class BaseServerModule implements ServerModule {
+export abstract class BaseServerModule {
   abstract name: string;
   priority: number = 0;
 

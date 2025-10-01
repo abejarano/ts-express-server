@@ -7,12 +7,12 @@ import {
   RoutesModule,
   SecurityModule,
 } from "./modules";
-import { ServiceModule } from "./abstract";
+import { BaseServerService } from "./abstract";
 
 export const BootstrapStandardServer = (
   port: number,
   routes: RoutesModule,
-  services?: ServiceModule[],
+  services?: BaseServerService[],
 ): BootstrapServer => {
   const expressServer = new BootstrapServer(port).addModules([
     routes,

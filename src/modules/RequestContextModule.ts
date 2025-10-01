@@ -46,3 +46,5 @@ class RequestContext {
     this.storage.run(context, callback);
   }
 }
+
+export { RequestContext };
