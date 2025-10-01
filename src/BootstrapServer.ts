@@ -1,9 +1,8 @@
 import express, { Express } from "express";
 import { Server as HttpServer } from "http";
-import { ServerModule } from "./abstract/ServerModule";
-import { ServiceModule } from "./abstract/ServiceModule";
+import { ServerModule, ServiceModule } from "./abstract";
 
-export class ExpressServer {
+export class BootstrapServer {
   private readonly app: Express;
   private readonly port: number;
   private httpServer?: HttpServer;
@@ -16,22 +15,22 @@ export class ExpressServer {
     this.app.set("port", port);
   }
 
-  addModule(module: ServerModule): ExpressServer {
+  addModule(module: ServerModule): BootstrapServer {
     this.modules.push(module);
     return this;
   }
 
-  addModules(modules: ServerModule[]): ExpressServer {
+  addModules(modules: ServerModule[]): BootstrapServer {
     this.modules.push(...modules);
     return this;
   }
 
-  addService(service: ServiceModule): ExpressServer {
+  addService(service: ServiceModule): BootstrapServer {
     this.services.push(service);
     return this;
   }
 
-  addServices(services: ServiceModule[]): ExpressServer {
+  addServices(services: ServiceModule[]): BootstrapServer {
     this.services.push(...services);
     return this;
   }

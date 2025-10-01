@@ -1,6 +1,6 @@
 import { Express, NextFunction, Request, Response } from "express";
 import { v4 } from "uuid";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { BaseServerModule } from "../abstract";
 import { AsyncLocalStorage } from "async_hooks";
 
 export class RequestContextModule extends BaseServerModule {

@@ -1,9 +1,10 @@
-import { Express, Router } from "express";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { Express, RequestHandler, Router } from "express";
+import { BaseServerModule } from "../abstract";
 
 export interface RouteConfig {
   path: string;
   router: Router;
+  middleware?: RequestHandler[] | RequestHandler;
 }
 
 export class RoutesModule extends BaseServerModule {
@@ -17,8 +18,12 @@ export class RoutesModule extends BaseServerModule {
     this.routes = routes;
   }
 
-  addRoute(path: string, router: Router): void {
-    this.routes.push({ path, router });
+  addRoute(
+    path: string,
+    router: Router,
+    middleware?: RequestHandler[] | RequestHandler,
+  ): void {
+    this.routes.push({ path, router, middleware });
   }
 
   addRoutes(routes: RouteConfig[]): void {
@@ -26,8 +31,12 @@ export class RoutesModule extends BaseServerModule {
   }
 
   init(app: Express): void {
-    this.routes.forEach(({ path, router }) => {
-      app.use(path, router);
+    this.routes.forEach(({ path, router, middleware }) => {
+      if (middleware && middleware.length > 0) {
+        app.use(path, middleware, router);
+      } else {
+        app.use(path, router);
+      }
     });
   }
 }

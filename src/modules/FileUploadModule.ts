@@ -1,6 +1,6 @@
 import { Express } from "express";
 import fileUpload from "express-fileupload";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { BaseServerModule } from "../abstract";
 
 export class FileUploadModule extends BaseServerModule {
   name = "FileUpload";

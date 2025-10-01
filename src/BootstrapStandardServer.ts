@@ -1,4 +1,4 @@
-import { ExpressServer } from "./ExpressServer";
+import { BootstrapServer } from "./BootstrapServer";
 import {
   CorsModule,
   FileUploadModule,
@@ -7,14 +7,14 @@ import {
   RoutesModule,
   SecurityModule,
 } from "./modules";
-import { ServiceModule } from "./abstract/ServiceModule";
+import { ServiceModule } from "./abstract";
 
-export const StandardServer = (
+export const BootstrapStandardServer = (
   port: number,
   routes: RoutesModule,
   services?: ServiceModule[],
-): ExpressServer => {
-  const expressServer = new ExpressServer(port).addModules([
+): BootstrapServer => {
+  const expressServer = new BootstrapServer(port).addModules([
     routes,
     new CorsModule(),
     new SecurityModule(),

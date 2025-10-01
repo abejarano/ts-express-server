@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { BaseServerModule } from "../abstract";
 
 import rateLimit from "express-rate-limit";
 

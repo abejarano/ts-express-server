@@ -1,6 +1,6 @@
 import { Express } from "express";
 import helmet from "helmet";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { BaseServerModule } from "../abstract";
 
 export class SecurityModule extends BaseServerModule {
   name = "Security";

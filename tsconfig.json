@@ -9,8 +9,16 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["jest", "node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules", "tests"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "tests"
+  ]
 }

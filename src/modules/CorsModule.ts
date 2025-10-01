@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { BaseServerModule } from "../abstract/ServerModule";
+import { BaseServerModule } from "../abstract";
 import cors, { CorsOptions } from "cors";
 
 export class CorsModule extends BaseServerModule {
