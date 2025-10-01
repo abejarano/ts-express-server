@@ -18,12 +18,10 @@ export class RoutesModule extends BaseServerModule {
     this.routes = routes;
   }
 
-  addRoute(
-    path: string,
-    router: Router,
-    middleware?: RequestHandler[] | RequestHandler,
-  ): void {
-    this.routes.push({ path, router, middleware });
+  addRoute(route: RouteConfig): void {
+    this.routes.push({
+      ...route,
+    });
   }
 
   addRoutes(routes: RouteConfig[]): void {

@@ -27,7 +27,5 @@ export const BootstrapStandardServer = (
     expressServer.addServices(services);
   }
 
-  expressServer.start();
-
   return expressServer;
 };

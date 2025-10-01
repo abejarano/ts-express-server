@@ -16,12 +16,33 @@ export class BootstrapServer {
   }
 
   addModule(module: ServerModule): BootstrapServer {
-    this.modules.push(module);
+    const existingModuleIndex = this.modules.findIndex(
+      (m) => m.name === module.name,
+    );
+
+    if (existingModuleIndex !== -1) {
+      // Reemplazar el módulo existente
+      this.modules[existingModuleIndex] = module;
+    } else {
+      // Agregar el nuevo módulo
+      this.modules.push(module);
+    }
     return this;
   }
 
   addModules(modules: ServerModule[]): BootstrapServer {
-    this.modules.push(...modules);
+    for (const module of modules) {
+      const existingModuleIndex = this.modules.findIndex(
+        (m) => m.name === module.name,
+      );
+      if (existingModuleIndex !== -1) {
+        // Reemplazar el módulo existente
+        this.modules[existingModuleIndex] = module;
+      } else {
+        // Agregar el nuevo módulo
+        this.modules.push(module);
+      }
+    }
     return this;
   }
 
@@ -147,11 +168,10 @@ export class BootstrapServer {
     // Ordenar módulos por prioridad (menor número = mayor prioridad)
     this.modules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
 
-    console.log("Initializing server modules...");
+    console.log("Initializing server modules in priority order:");
 
     for (const module of this.modules) {
       try {
-        console.log(`Initializing module: ${module.name}`);
         await module.init(this.app);
         console.log(`Module initialized: ${module.name}`);
       } catch (error) {
