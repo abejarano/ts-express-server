@@ -3,7 +3,7 @@ import { BaseServerModule } from "../abstract";
 import cors, { CorsOptions } from "cors";
 
 export class CorsModule extends BaseServerModule {
-  name = "CORS";
+  name = "Cors";
   priority = -90;
 
   private corsOptions: CorsOptions;
@@ -15,6 +15,10 @@ export class CorsModule extends BaseServerModule {
       preflightContinue: false,
       optionsSuccessStatus: 204,
     };
+  }
+
+  getModuleName(): string {
+    return this.name;
   }
 
   init(app: Express): void {

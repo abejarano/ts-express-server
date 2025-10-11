@@ -19,6 +19,10 @@ export class RateLimitModule extends BaseServerModule {
     };
   }
 
+  getModuleName(): string {
+    return this.name;
+  }
+
   init(app: Express): void {
     const limiter = rateLimit(this.limiterOptions);
     app.use(limiter);

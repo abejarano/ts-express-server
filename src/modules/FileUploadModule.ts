@@ -17,6 +17,10 @@ export class FileUploadModule extends BaseServerModule {
     };
   }
 
+  getModuleName(): string {
+    return this.name;
+  }
+
   init(app: Express): void {
     app.use(fileUpload(this.fileUploadOptions));
   }

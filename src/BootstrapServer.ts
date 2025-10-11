@@ -21,13 +21,13 @@ export class BootstrapServer {
   }
 
   removeModule(moduleName: string): BootstrapServer {
-    this.modules = this.modules.filter((m) => m.name !== moduleName);
+    this.modules = this.modules.filter((m) => m.getModuleName() !== moduleName);
     return this;
   }
 
   addModule(module: BaseServerModule): BootstrapServer {
     const existingModuleIndex = this.modules.findIndex(
-      (m) => m.name === module.name,
+      (m) => m.getModuleName() === module.getModuleName(),
     );
 
     if (existingModuleIndex !== -1) {
@@ -43,7 +43,7 @@ export class BootstrapServer {
   addModules(modules: BaseServerModule[]): BootstrapServer {
     for (const module of modules) {
       const existingModuleIndex = this.modules.findIndex(
-        (m) => m.name === module.name,
+        (m) => m.getModuleName() === module.getModuleName(),
       );
       if (existingModuleIndex !== -1) {
         // Replace existing module
@@ -99,11 +99,14 @@ export class BootstrapServer {
       for (const module of reversedModules) {
         if (module.shutdown) {
           try {
-            console.log(`Shutting down module: ${module.name}`);
+            console.log(`Shutting down module: ${module.getModuleName()}`);
             await module.shutdown();
-            console.log(`Module shutdown completed: ${module.name}`);
+            console.log(`Module shutdown completed: ${module.getModuleName()}`);
           } catch (error) {
-            console.error(`Error shutting down module ${module.name}:`, error);
+            console.error(
+              `Error shutting down module ${module.getModuleName()}:`,
+              error,
+            );
           }
         }
       }
@@ -176,9 +179,12 @@ export class BootstrapServer {
     for (const module of this.modules) {
       try {
         await module.init(this.app);
-        console.log(`Module initialized: ${module.name}`);
+        console.log(`Module initialized: ${module.getModuleName()}`);
       } catch (error) {
-        console.error(`Failed to initialize module ${module.name}:`, error);
+        console.error(
+          `Failed to initialize module ${module.getModuleName()}:`,
+          error,
+        );
         throw error;
       }
     }

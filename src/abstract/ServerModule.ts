@@ -1,8 +1,12 @@
 import { Express } from "express";
 
 export abstract class BaseServerModule {
-  abstract name: string;
   priority: number = 0;
+
+  /*
+   * Returns the name of the module.
+   */
+  abstract getModuleName(): string;
 
   abstract init(app: Express): Promise<void> | void;
 

@@ -33,6 +33,9 @@ export class SecurityModule extends BaseServerModule {
       xssFilter: true,
     };
   }
+  getModuleName(): string {
+    return this.name;
+  }
 
   init(app: Express): void {
     app.use(helmet(this.helmetOptions));

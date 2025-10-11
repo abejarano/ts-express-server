@@ -22,6 +22,10 @@ export class RequestContextModule extends BaseServerModule {
 
     app.use(requestContextMiddleware);
   }
+
+  getModuleName(): string {
+    return this.name;
+  }
 }
 
 interface Context {
