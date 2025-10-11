@@ -20,6 +20,11 @@ export class BootstrapServer {
     this.app.set("port", port);
   }
 
+  removeModule(moduleName: string): BootstrapServer {
+    this.modules = this.modules.filter((m) => m.name !== moduleName);
+    return this;
+  }
+
   addModule(module: BaseServerModule): BootstrapServer {
     const existingModuleIndex = this.modules.findIndex(
       (m) => m.name === module.name,
