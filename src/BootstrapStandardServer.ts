@@ -1,6 +1,7 @@
 import { BootstrapServer } from "./BootstrapServer";
 import {
   CorsModule,
+  ControllersModule,
   FileUploadModule,
   RateLimitModule,
   RequestContextModule,
@@ -12,7 +13,8 @@ import { BaseServerService } from "./abstract";
 export const BootstrapStandardServer = (
   port: number,
   routes: RoutesModule,
-  services?: BaseServerService[],
+  controllersModule?: ControllersModule,
+  services?: BaseServerService[]
 ): BootstrapServer => {
   const expressServer = new BootstrapServer(port).addModules([
     routes,
@@ -22,6 +24,10 @@ export const BootstrapStandardServer = (
     new FileUploadModule(),
     new RequestContextModule(),
   ]);
+
+  if (controllersModule) {
+    expressServer.addModule(controllersModule);
+  }
 
   if (services) {
     expressServer.addServices(services);

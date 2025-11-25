@@ -3,6 +3,14 @@ import { v4 } from "uuid";
 import { BaseServerModule } from "../abstract";
 import { AsyncLocalStorage } from "async_hooks";
 
+declare global {
+  namespace Express {
+    interface Request {
+      requestId?: string;
+    }
+  }
+}
+
 export class RequestContextModule extends BaseServerModule {
   name = "RequestContext";
   priority = -50;
@@ -11,9 +19,18 @@ export class RequestContextModule extends BaseServerModule {
     const requestContextMiddleware = (
       req: Request,
       res: Response,
-      next: NextFunction,
+      next: NextFunction
     ) => {
-      const requestId = (req.headers["x-request-id"] as string) || v4();
+      const incomingRequestId = req.headers["x-request-id"];
+      const requestId =
+        (Array.isArray(incomingRequestId)
+          ? incomingRequestId[0]
+          : incomingRequestId) || v4();
+
+      // req.headers["x-request-id"] = requestId;
+      // req.requestId = requestId;
+      // res.locals.requestId = requestId;
+      // res.setHeader("x-request-id", requestId);
 
       RequestContext.run({ requestId }, () => {
         next();
