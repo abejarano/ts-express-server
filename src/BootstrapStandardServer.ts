@@ -10,12 +10,25 @@ import {
 } from "./modules";
 import { BaseServerService } from "./abstract";
 
-export const BootstrapStandardServer = (
+export function BootstrapStandardServer(
+  port: number,
+  routes: RoutesModule,
+  services?: BaseServerService[]
+): BootstrapServer;
+
+export function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
   controllersModule?: ControllersModule,
   services?: BaseServerService[]
-): BootstrapServer => {
+): BootstrapServer;
+
+export function BootstrapStandardServer(
+  port: number,
+  routes: RoutesModule,
+  arg3?: BaseServerService[] | ControllersModule,
+  arg4?: BaseServerService[]
+): BootstrapServer {
   const expressServer = new BootstrapServer(port).addModules([
     routes,
     new CorsModule(),
@@ -24,6 +37,20 @@ export const BootstrapStandardServer = (
     new FileUploadModule(),
     new RequestContextModule(),
   ]);
+
+  let controllersModule: ControllersModule | undefined;
+  let services: BaseServerService[] | undefined;
+
+  if (Array.isArray(arg3)) {
+    services = arg3;
+  } else {
+    if (arg3 instanceof ControllersModule) {
+      controllersModule = arg3;
+    }
+    if (Array.isArray(arg4)) {
+      services = arg4;
+    }
+  }
 
   if (controllersModule) {
     expressServer.addModule(controllersModule);
@@ -34,4 +61,4 @@ export const BootstrapStandardServer = (
   }
 
   return expressServer;
-};
+}
