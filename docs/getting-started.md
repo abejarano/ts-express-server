@@ -66,5 +66,12 @@ const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/myapp";
 
 const services = [new MongoDBService(mongoUri)];
 
-const server = BootstrapStandardServer(port, routesModule, services);
+// Option 1: Legacy Routes + Services
+const server1 = BootstrapStandardServer(port, routesModule, services);
+
+// Option 2: Decorated Controllers + Services
+const server2 = BootstrapStandardServer(port, controllersModule, services);
+
+// Option 3: Both + Services
+const server3 = BootstrapStandardServer(port, routesModule, controllersModule, services);
 ```

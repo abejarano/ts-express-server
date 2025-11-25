@@ -1,5 +1,35 @@
 # API Reference
 
+## BootstrapStandardServer
+
+A helper function to quickly bootstrap a standard server with common modules.
+
+### Signatures
+
+```typescript
+// 1. Legacy Routes + Services
+function BootstrapStandardServer(
+  port: number,
+  routes: RoutesModule,
+  services?: BaseServerService[]
+): BootstrapServer;
+
+// 2. Decorated Controllers + Services
+function BootstrapStandardServer(
+  port: number,
+  controllersModule: ControllersModule,
+  services?: BaseServerService[]
+): BootstrapServer;
+
+// 3. Both Routes and Controllers + Services
+function BootstrapStandardServer(
+  port: number,
+  routes: RoutesModule,
+  controllersModule: ControllersModule,
+  services?: BaseServerService[]
+): BootstrapServer;
+```
+
 ## BootstrapServer Methods
 
 - `addModule(module: BaseServerModule)`: Add a single module

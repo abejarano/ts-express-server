@@ -33,6 +33,27 @@ export class UserController {
 
 ## 2. Register the Controller
 
+You can register controllers in two ways:
+
+### Option A: Using only Controllers
+
+```typescript
+import {
+  BootstrapStandardServer,
+  ControllersModule,
+} from "@abejarano/ts-express-server";
+import { UserController } from "./controllers/UserController";
+
+const controllersModule = new ControllersModule([UserController]);
+
+// Pass controllersModule directly as the second argument
+const server = BootstrapStandardServer(3000, controllersModule);
+
+server.start();
+```
+
+### Option B: Mixing Legacy Routes and Controllers
+
 ```typescript
 import {
   BootstrapStandardServer,
@@ -41,12 +62,15 @@ import {
 } from "@abejarano/ts-express-server";
 import { UserController } from "./controllers/UserController";
 
-// Legacy routes (optional)
-const routesModule = new RoutesModule([]);
+// Legacy routes
+const routesModule = new RoutesModule([
+  /* ... */
+]);
 
 // New decorated controllers
 const controllersModule = new ControllersModule([UserController]);
 
+// Pass both modules
 const server = BootstrapStandardServer(3000, routesModule, controllersModule);
 
 server.start();

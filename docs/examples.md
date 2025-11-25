@@ -35,10 +35,7 @@ import { ReportFinanceController } from "./ReportFinanceController";
 import { UserController } from "./UserController";
 
 export const AppControllers = () =>
-  new ControllersModule([
-    ReportFinanceController,
-    UserController,
-  ]);
+  new ControllersModule([ReportFinanceController, UserController]);
 ```
 
 ### 3. Define your Services
@@ -50,13 +47,19 @@ import { BaseServerService } from "@abejarano/ts-express-server";
 
 export class DatabaseService extends BaseServerService {
   name = "Database";
-  async start() { /* Connect to DB */ }
-  async stop() { /* Disconnect DB */ }
+  async start() {
+    /* Connect to DB */
+  }
+  async stop() {
+    /* Disconnect DB */
+  }
 }
 
 export class SocketService extends BaseServerService {
   name = "Socket";
-  async start() { /* Start Socket.io */ }
+  async start() {
+    /* Start Socket.io */
+  }
 }
 ```
 
@@ -73,15 +76,12 @@ import { DatabaseService, SocketService } from "./infrastructure/services";
 // Initialize Server
 const server = BootstrapStandardServer(
   Number(process.env.APP_PORT || 8080),
-  AppRoutes(),       // Legacy Routes
-  AppControllers()   // Decorated Controllers
+  AppRoutes(), // Legacy Routes
+  AppControllers() // Decorated Controllers
 );
 
 // Add Background Services
-server.addServices([
-  new DatabaseService(),
-  new SocketService()
-]);
+server.addServices([new DatabaseService(), new SocketService()]);
 
 // Start Server
 server.start().then(() => {
@@ -95,9 +95,9 @@ server.start().then(() => {
 import {
   BootstrapStandardServer,
   RoutesModule,
-  BaseServerService
+  BaseServerService,
 } from "@abejarano/ts-express-server";
 import { Router } from "express";
 
 // ... (rest of the simple example)
-
+```
