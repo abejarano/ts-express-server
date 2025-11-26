@@ -63,7 +63,7 @@ describe("BootstrapStandardServer", () => {
     const server = BootstrapStandardServer(
       port,
       routesModule,
-      controllersModule
+      controllersModule,
     );
     await server.initialize();
     const app = server.getApp();
@@ -104,7 +104,7 @@ describe("BootstrapStandardServer", () => {
       port,
       routesModule,
       controllersModule,
-      [service]
+      [service],
     );
 
     expect(server).toBeDefined();

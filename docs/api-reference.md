@@ -11,14 +11,14 @@ A helper function to quickly bootstrap a standard server with common modules.
 function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BootstrapServer;
 
 // 2. Decorated Controllers + Services
 function BootstrapStandardServer(
   port: number,
   controllersModule: ControllersModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BootstrapServer;
 
 // 3. Both Routes and Controllers + Services
@@ -26,7 +26,7 @@ function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
   controllersModule: ControllersModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BootstrapServer;
 ```
 

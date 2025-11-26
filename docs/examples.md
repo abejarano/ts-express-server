@@ -77,7 +77,7 @@ import { DatabaseService, SocketService } from "./infrastructure/services";
 const server = BootstrapStandardServer(
   Number(process.env.APP_PORT || 8080),
   AppRoutes(), // Legacy Routes
-  AppControllers() // Decorated Controllers
+  AppControllers(), // Decorated Controllers
 );
 
 // Add Background Services

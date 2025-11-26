@@ -73,5 +73,10 @@ const server1 = BootstrapStandardServer(port, routesModule, services);
 const server2 = BootstrapStandardServer(port, controllersModule, services);
 
 // Option 3: Both + Services
-const server3 = BootstrapStandardServer(port, routesModule, controllersModule, services);
+const server3 = BootstrapStandardServer(
+  port,
+  routesModule,
+  controllersModule,
+  services,
+);
 ```

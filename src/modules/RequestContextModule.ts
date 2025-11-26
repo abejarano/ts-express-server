@@ -19,18 +19,13 @@ export class RequestContextModule extends BaseServerModule {
     const requestContextMiddleware = (
       req: Request,
       res: Response,
-      next: NextFunction
+      next: NextFunction,
     ) => {
       const incomingRequestId = req.headers["x-request-id"];
       const requestId =
         (Array.isArray(incomingRequestId)
           ? incomingRequestId[0]
           : incomingRequestId) || v4();
-
-      // req.headers["x-request-id"] = requestId;
-      // req.requestId = requestId;
-      // res.locals.requestId = requestId;
-      // res.setHeader("x-request-id", requestId);
 
       RequestContext.run({ requestId }, () => {
         next();
