@@ -11,7 +11,7 @@ import {
   Get,
   Post,
   Use,
-} from "@abejarano/ts-express-server/decorators";
+} from "@abejarano/ts-express-server";
 
 // Example middleware
 const AuthMiddleware = (req: any, res: any, next: any) => next();
