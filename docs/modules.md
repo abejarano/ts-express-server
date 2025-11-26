@@ -48,7 +48,7 @@ export class CompressionModule extends BaseServerModule {
   priority = -50;
 
   constructor(
-    private config: CompressionConfig = { level: 6, threshold: "1kb" }
+    private config: CompressionConfig = { level: 6, threshold: "1kb" },
   ) {
     super();
   }
@@ -58,7 +58,7 @@ export class CompressionModule extends BaseServerModule {
       compression({
         level: this.config.level,
         threshold: this.config.threshold,
-      })
+      }),
     );
   }
 

@@ -6,12 +6,7 @@ You can define your routes using decorators for a cleaner and more declarative a
 
 ```typescript
 import { Request, Response } from "express";
-import {
-  Controller,
-  Get,
-  Post,
-  Use,
-} from "@abejarano/ts-express-server";
+import { Controller, Get, Post, Use } from "@abejarano/ts-express-server";
 
 // Example middleware
 const AuthMiddleware = (req: any, res: any, next: any) => next();

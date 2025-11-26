@@ -20,7 +20,7 @@ export class ControllersModule extends BaseServerModule {
     this.controllers.forEach((ControllerClass) => {
       const basePath: string = Reflect.getMetadata(
         MetadataKeys.BASE_PATH,
-        ControllerClass
+        ControllerClass,
       );
       const classMiddlewares =
         Reflect.getMetadata(MetadataKeys.MIDDLEWARE, ControllerClass) || [];
@@ -48,7 +48,7 @@ export class ControllersModule extends BaseServerModule {
           Reflect.getMetadata(
             MetadataKeys.MIDDLEWARE,
             ControllerClass.prototype,
-            handlerName as string
+            handlerName as string,
           ) || [];
 
         // Bind the handler to the single controller instance

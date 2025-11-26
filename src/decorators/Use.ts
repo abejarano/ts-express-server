@@ -16,7 +16,7 @@ export function Use(middleware: RequestHandler | RequestHandler[]) {
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],
         target,
-        key
+        key,
       );
     } else {
       // Class decorator
@@ -25,7 +25,7 @@ export function Use(middleware: RequestHandler | RequestHandler[]) {
       Reflect.defineMetadata(
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],
-        target
+        target,
       );
     }
   };

@@ -13,21 +13,21 @@ import { BaseServerService } from "./abstract";
 export function BootstrapStandardServer(
   port: number,
   module: RoutesModule | ControllersModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
   controllersModule: ControllersModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   arg2: RoutesModule | ControllersModule,
   arg3?: BaseServerService[] | ControllersModule,
-  arg4?: BaseServerService[]
+  arg4?: BaseServerService[],
 ): BootstrapServer {
   let routesModule: RoutesModule;
   let controllersModule: ControllersModule | undefined;
@@ -49,7 +49,7 @@ export function BootstrapStandardServer(
     }
   } else {
     throw new Error(
-      "Invalid second argument. Must be RoutesModule or ControllersModule"
+      "Invalid second argument. Must be RoutesModule or ControllersModule",
     );
   }
 
