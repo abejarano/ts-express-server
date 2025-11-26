@@ -34,6 +34,9 @@ export class ControllersModule extends BaseServerModule {
 
       const router = Router();
 
+      // Create a single controller instance per controller class (singleton pattern)
+      const controllerInstance = new (ControllerClass as any)();
+
       // Apply class-level middlewares
       if (classMiddlewares.length > 0) {
         router.use(classMiddlewares);
@@ -48,8 +51,7 @@ export class ControllersModule extends BaseServerModule {
             handlerName as string
           ) || [];
 
-        // Instantiate the controller
-        const controllerInstance = new (ControllerClass as any)();
+        // Bind the handler to the single controller instance
         const handler = routeHandler.bind(controllerInstance);
 
         router[method](path, ...routeMiddlewares, handler);
