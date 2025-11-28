@@ -58,6 +58,31 @@ The standard server includes:
 - **RoutesModule**: Manages application routes
 - **ControllersModule**: Manages decorated controllers
 
+### Customizing the preset modules
+
+`BootstrapStandardServer` accepts an optional configuration object so you can tweak the bundled modules without dropping down to the low-level API:
+
+```typescript
+import {
+  BootstrapStandardServer,
+  ControllersModule,
+  RateLimitModule,
+} from "@abejarano/ts-express-server";
+
+const controllers = new ControllersModule([UserController]);
+
+const server = BootstrapStandardServer(3000, controllers, {
+  modules: {
+    rateLimit: new RateLimitModule({ windowMs: 30_000, max: 200 }),
+    fileUpload: false, // disable built-in file uploads
+    extra: [new LoggingModule()],
+  },
+  services: [new MetricsService()],
+});
+```
+
+You can replace any default module by providing an instance, disable it with `false`, or register additional modules through the `extra` array. Services can still be supplied via the array argument or the `services` property shown above.
+
 ## Environment Configuration
 
 ```typescript
@@ -80,3 +105,7 @@ const server3 = BootstrapStandardServer(
   services,
 );
 ```
+
+### Testing decorated controllers
+
+When writing integration tests you can avoid repeating the bootstrap logic by using `createDecoratedTestApp` from the testing helpers. This utility wires up the controllers, disables non-essential modules, and gives you back an Express app ready for `supertest`.

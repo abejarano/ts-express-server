@@ -1,8 +1,23 @@
+// @ts-nocheck
 import { BootstrapStandardServer } from "../src/BootstrapStandardServer";
-import { RoutesModule, ControllersModule } from "../src/modules";
-import { BaseServerService } from "../src/abstract";
-import { Controller, Get } from "../src/decorators";
+import {
+  RoutesModule,
+  ControllersModule,
+  FileUploadModule,
+} from "../src/modules";
+import { BaseServerModule, BaseServerService } from "../src/abstract";
+import { createDecoratedTestApp } from "../src/testing";
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Res,
+  UploadedFile,
+} from "../src/decorators";
 import { Router } from "express";
+import type { Express } from "express";
 import request from "supertest";
 
 jest.mock("uuid", () => ({
@@ -22,6 +37,40 @@ class TestController {
   @Get("/")
   index(req: any, res: any) {
     res.json({ message: "controller working" });
+  }
+}
+
+@Controller("/users")
+class UsersController {
+  @Post("/:userId")
+  async updateUser(
+    @Param("userId") userId: string,
+    @Body() body: any,
+    @Res() res: any,
+  ) {
+    res.json({ userId, ...body });
+  }
+}
+
+@Controller("/upload")
+class UploadController {
+  @Post("/")
+  async upload(@UploadedFile("file") file: any, @Res() res: any) {
+    res.json({ fileName: file?.name ?? null });
+  }
+}
+
+class TrackingModule extends BaseServerModule {
+  name = "Tracking";
+  initialized = false;
+
+  getModuleName(): string {
+    return this.name;
+  }
+
+  init(app: Express): void {
+    this.initialized = true;
+    app.set("tracking", true);
   }
 }
 
@@ -75,6 +124,37 @@ describe("BootstrapStandardServer", () => {
     expect(resController.body).toEqual({ message: "controller working" });
   });
 
+  it("should inject parameters using decorators", async () => {
+    const controllersModule = new ControllersModule([UsersController]);
+
+    const server = BootstrapStandardServer(port, controllersModule);
+    await server.initialize();
+    const app = server.getApp();
+
+    const response = await request(app)
+      .post("/users/123")
+      .send({ name: "Alice" })
+      .set("Content-Type", "application/json");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ userId: "123", name: "Alice" });
+  });
+
+  it("should inject uploaded files", async () => {
+    const controllersModule = new ControllersModule([UploadController]);
+
+    const server = BootstrapStandardServer(port, controllersModule);
+    await server.initialize();
+    const app = server.getApp();
+
+    const response = await request(app)
+      .post("/upload")
+      .attach("file", Buffer.from("test"), "test.txt");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ fileName: "test.txt" });
+  });
+
   it("should accept services with legacy routes", () => {
     const routesModule = new RoutesModule([]);
     const service = new MockService();
@@ -108,5 +188,40 @@ describe("BootstrapStandardServer", () => {
     );
 
     expect(server).toBeDefined();
+  });
+
+  it("should allow customizing preset modules", async () => {
+    const controllersModule = new ControllersModule([]);
+    const trackingModule = new TrackingModule();
+
+    const server = BootstrapStandardServer(port, controllersModule, {
+      modules: {
+        fileUpload: false,
+        extra: [trackingModule],
+      },
+    });
+
+    expect(server.getModule(FileUploadModule)).toBeUndefined();
+    expect(server.getModule(TrackingModule)).toBe(trackingModule);
+
+    await server.initialize();
+
+    expect(trackingModule.initialized).toBe(true);
+  });
+
+  it("should create an app for decorated controllers using the test helper", async () => {
+    const { app, stop } = await createDecoratedTestApp({
+      controllers: [UsersController],
+    });
+
+    const response = await request(app)
+      .post("/users/42")
+      .send({ name: "Eve" })
+      .set("Content-Type", "application/json");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ userId: "42", name: "Eve" });
+
+    await stop();
   });
 });

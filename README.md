@@ -28,6 +28,7 @@ yarn add @abejarano/ts-express-server
 - [Modules](docs/modules.md)
 - [Using Decorators](docs/decorators.md)
 - [Services](docs/services.md)
+- [Testing Helpers](docs/testing.md)
 - [API Reference](docs/api-reference.md)
 - [Examples](docs/examples.md)
 
