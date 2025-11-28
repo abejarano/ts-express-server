@@ -79,6 +79,17 @@ const server = BootstrapStandardServer(3000, controllers, {
   },
   services: [new MetricsService()],
 });
+
+const serverWithCustomCors = BootstrapStandardServer(
+  Number(process.env.PORT ?? 8080),
+  routesModule(),
+  {
+    modules: {
+      cors: new CustomCorsModule(),
+      extra: [new EnvironmentModule()],
+    },
+  }
+);
 ```
 
 You can replace any default module by providing an instance, disable it with `false`, or register additional modules through the `extra` array. Services can still be supplied via the array argument or the `services` property shown above.
@@ -102,7 +113,7 @@ const server3 = BootstrapStandardServer(
   port,
   routesModule,
   controllersModule,
-  services,
+  services
 );
 ```
 
