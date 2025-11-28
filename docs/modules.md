@@ -10,6 +10,8 @@
 - **RoutesModule**: Manages application routes
 - **ControllersModule**: Manages decorated controllers
 
+You can opt-out of any of these when using `BootstrapStandardServer` by passing configuration options, or replace them with your own implementations while still benefiting from the preset wiring.
+
 ## Creating Custom Modules
 
 ### Basic Module Example

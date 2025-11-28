@@ -7,28 +7,40 @@ A helper function to quickly bootstrap a standard server with common modules.
 ### Signatures
 
 ```typescript
-// 1. Legacy Routes + Services
+interface BootstrapStandardServerOptions {
+  modules?: {
+    cors?: BaseServerModule | false;
+    security?: BaseServerModule | false;
+    rateLimit?: BaseServerModule | false;
+    fileUpload?: BaseServerModule | false;
+    requestContext?: BaseServerModule | false;
+    extra?: BaseServerModule[];
+  };
+  services?: BaseServerService[];
+}
+
+// Routes or controllers with optional services/options
+function BootstrapStandardServer(
+  port: number,
+  module: RoutesModule | ControllersModule,
+  servicesOrOptions?: BaseServerService[] | BootstrapStandardServerOptions,
+  maybeOptions?: BootstrapStandardServerOptions
+): BootstrapServer;
+
+// Routes + controllers with optional services/options
 function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
-  services?: BaseServerService[],
-): BootstrapServer;
-
-// 2. Decorated Controllers + Services
-function BootstrapStandardServer(
-  port: number,
   controllersModule: ControllersModule,
-  services?: BaseServerService[],
-): BootstrapServer;
-
-// 3. Both Routes and Controllers + Services
-function BootstrapStandardServer(
-  port: number,
-  routes: RoutesModule,
-  controllersModule: ControllersModule,
-  services?: BaseServerService[],
+  servicesOrOptions?: BaseServerService[] | BootstrapStandardServerOptions,
+  maybeOptions?: BootstrapStandardServerOptions,
+  finalOptions?: BootstrapStandardServerOptions
 ): BootstrapServer;
 ```
+
+When you only need to tweak modules, you can skip the services array and pass the options object directly as the next argument.
+
+> Note: Provide a single `ControllersModule` instance per bootstrap call. Supplying different instances through multiple arguments will throw an error.
 
 ## BootstrapServer Methods
 
@@ -54,3 +66,27 @@ function BootstrapStandardServer(
 - `name: string`: Service identifier
 - `start(http: HttpServer)`: Service startup method
 - `stop()`: Optional cleanup method
+
+## Testing Helpers
+
+### `createDecoratedTestApp(options)`
+
+Creates an initialized `BootstrapServer` configured with the provided decorated controllers, returning the Express app and a `stop` helper for cleanup.
+
+```typescript
+type DecoratedTestAppOptions = {
+  controllers?: Array<new (...args: any[]) => any>;
+  controllersModule?: ControllersModule;
+  port?: number;
+  services?: BaseServerService[];
+  standardOptions?: BootstrapStandardServerOptions;
+};
+
+type DecoratedTestAppResult = {
+  app: Express;
+  server: BootstrapServer;
+  stop: () => Promise<void>;
+};
+```
+
+The helper disables `CorsModule`, `SecurityModule`, and `RateLimitModule` by default. Use `standardOptions.modules` to re-enable or replace them for specific scenarios.
