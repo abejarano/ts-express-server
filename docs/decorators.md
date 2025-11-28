@@ -67,7 +67,7 @@ export class UserController {
   async updateUser(
     @Param("userId") userId: string,
     @Body() body: UpdateUserDto,
-    @Res() res: Response,
+    @Res() res: Response
   ) {
     res.json({ userId, ...body });
   }
@@ -112,10 +112,10 @@ export class ReportController {
   @Post("/")
   async createReport(
     @Body() body: CreateReportDto,
-    @UploadedFile("file") file: UploadedFile,
-    @Res() res: Response,
+    @UploadedFile("file") uploadedFile: UploadedFile,
+    @Res() res: Response
   ) {
-    if (!file) {
+    if (!uploadedFile) {
       res.status(400).json({ message: "Missing file" });
       return;
     }
@@ -124,8 +124,8 @@ export class ReportController {
     res.status(201).json({
       name: body.name,
       description: body.description,
-      size: file.size,
-      mimeType: file.mimetype,
+      size: uploadedFile.size,
+      mimeType: uploadedFile.mimetype,
     });
   }
 }

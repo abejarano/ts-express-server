@@ -41,13 +41,13 @@ it("updates a user", async () => {
 
 ### Options
 
-| Option              | Type                             | Description                                                               |
-| ------------------- | -------------------------------- | ------------------------------------------------------------------------- |
-| `controllers`       | `Array<new () => any>`           | Controller classes to register.                                           |
-| `controllersModule` | `ControllersModule`              | Provide an existing module instead of letting the helper create one.      |
-| `port`              | `number`                         | Port used when initializing (defaults to `0`).                            |
-| `services`          | `BaseServerService[]`            | Services to preload for tests.                                            |
-| `standardOptions`   | `BootstrapStandardServerOptions` | Fine-tune the preset modules (same pattern as `BootstrapStandardServer`). |
+| Option              | Type                                 | Description                                                               |
+| ------------------- | ------------------------------------ | ------------------------------------------------------------------------- |
+| `controllers`       | `Array<new (...args: any[]) => any>` | Controller classes to register.                                           |
+| `controllersModule` | `ControllersModule`                  | Provide an existing module instead of letting the helper create one.      |
+| `port`              | `number`                             | Port used when initializing (defaults to `0`).                            |
+| `services`          | `BaseServerService[]`                | Services to preload for tests.                                            |
+| `standardOptions`   | `BootstrapStandardServerOptions`     | Fine-tune the preset modules (same pattern as `BootstrapStandardServer`). |
 
 The helper disables `CorsModule`, `SecurityModule`, and `RateLimitModule` by default to keep tests focused. You can re-enable or replace them through `standardOptions.modules`.
 

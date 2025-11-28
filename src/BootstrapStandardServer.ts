@@ -25,27 +25,27 @@ export interface BootstrapStandardServerOptions {
 export function BootstrapStandardServer(
   port: number,
   module: RoutesModule | ControllersModule,
-  services?: BaseServerService[],
+  services?: BaseServerService[]
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   module: RoutesModule | ControllersModule,
   services: BaseServerService[],
-  options: BootstrapStandardServerOptions,
+  options: BootstrapStandardServerOptions
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   module: RoutesModule | ControllersModule,
-  options: BootstrapStandardServerOptions,
+  options: BootstrapStandardServerOptions
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
   controllersModule: ControllersModule,
-  services?: BaseServerService[],
+  services?: BaseServerService[]
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
@@ -53,14 +53,14 @@ export function BootstrapStandardServer(
   routes: RoutesModule,
   controllersModule: ControllersModule,
   services: BaseServerService[],
-  options: BootstrapStandardServerOptions,
+  options: BootstrapStandardServerOptions
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
   port: number,
   routes: RoutesModule,
   controllersModule: ControllersModule,
-  options: BootstrapStandardServerOptions,
+  options: BootstrapStandardServerOptions
 ): BootstrapServer;
 
 export function BootstrapStandardServer(
@@ -71,42 +71,58 @@ export function BootstrapStandardServer(
     | ControllersModule
     | BootstrapStandardServerOptions,
   arg4?: BaseServerService[] | BootstrapStandardServerOptions,
-  arg5?: BootstrapStandardServerOptions,
+  arg5?: BootstrapStandardServerOptions
 ): BootstrapServer {
   let routesModule: RoutesModule;
   let controllersModule: ControllersModule | undefined;
   let services: BaseServerService[] | undefined;
   let options: BootstrapStandardServerOptions | undefined;
 
+  const setControllersModule = (module: ControllersModule) => {
+    if (controllersModule && controllersModule !== module) {
+      throw new Error(
+        "ControllersModule provided multiple times. Pass a single instance only."
+      );
+    }
+    controllersModule = module;
+  };
+
   if (arg2 instanceof RoutesModule) {
     routesModule = arg2;
   } else if (arg2 instanceof ControllersModule) {
-    controllersModule = arg2;
+    setControllersModule(arg2);
     routesModule = new RoutesModule();
   } else {
     throw new Error(
-      "Invalid second argument. Must be RoutesModule or ControllersModule",
+      "Invalid second argument. Must be RoutesModule or ControllersModule"
     );
   }
+
+  const addServices = (value: BaseServerService[] | undefined) => {
+    if (!value?.length) {
+      return;
+    }
+    services = [...(services ?? []), ...value];
+  };
 
   const processOptionalArg = (
     value:
       | BaseServerService[]
       | ControllersModule
       | BootstrapStandardServerOptions
-      | undefined,
+      | undefined
   ) => {
     if (!value) {
       return;
     }
 
     if (value instanceof ControllersModule) {
-      controllersModule = value;
+      setControllersModule(value);
       return;
     }
 
     if (Array.isArray(value)) {
-      services = value;
+      addServices(value);
       return;
     }
 
@@ -117,16 +133,14 @@ export function BootstrapStandardServer(
   processOptionalArg(arg4 as any);
   processOptionalArg(arg5 as any);
 
-  if (options?.services?.length) {
-    services = [...(services ?? []), ...options.services];
-  }
+  addServices(options?.services);
 
   const modulesToRegister: BaseServerModule[] = [routesModule];
 
   const preset = options?.modules;
   const registerModule = (
     factory: () => BaseServerModule,
-    override?: BaseServerModule | false,
+    override?: BaseServerModule | false
   ) => {
     if (override === false) {
       return;

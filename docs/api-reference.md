@@ -24,7 +24,7 @@ function BootstrapStandardServer(
   port: number,
   module: RoutesModule | ControllersModule,
   servicesOrOptions?: BaseServerService[] | BootstrapStandardServerOptions,
-  maybeOptions?: BootstrapStandardServerOptions,
+  maybeOptions?: BootstrapStandardServerOptions
 ): BootstrapServer;
 
 // Routes + controllers with optional services/options
@@ -34,11 +34,13 @@ function BootstrapStandardServer(
   controllersModule: ControllersModule,
   servicesOrOptions?: BaseServerService[] | BootstrapStandardServerOptions,
   maybeOptions?: BootstrapStandardServerOptions,
-  finalOptions?: BootstrapStandardServerOptions,
+  finalOptions?: BootstrapStandardServerOptions
 ): BootstrapServer;
 ```
 
 When you only need to tweak modules, you can skip the services array and pass the options object directly as the next argument.
+
+> Note: Provide a single `ControllersModule` instance per bootstrap call. Supplying different instances through multiple arguments will throw an error.
 
 ## BootstrapServer Methods
 
@@ -73,7 +75,7 @@ Creates an initialized `BootstrapServer` configured with the provided decorated 
 
 ```typescript
 type DecoratedTestAppOptions = {
-  controllers?: Array<new () => any>;
+  controllers?: Array<new (...args: any[]) => any>;
   controllersModule?: ControllersModule;
   port?: number;
   services?: BaseServerService[];

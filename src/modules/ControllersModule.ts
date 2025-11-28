@@ -21,7 +21,7 @@ export class ControllersModule extends BaseServerModule {
     this.controllers.forEach((ControllerClass) => {
       const basePath: string = Reflect.getMetadata(
         MetadataKeys.BASE_PATH,
-        ControllerClass,
+        ControllerClass
       );
       const classMiddlewares =
         Reflect.getMetadata(MetadataKeys.MIDDLEWARE, ControllerClass) || [];
@@ -49,14 +49,14 @@ export class ControllersModule extends BaseServerModule {
           Reflect.getMetadata(
             MetadataKeys.MIDDLEWARE,
             ControllerClass.prototype,
-            handlerName as string,
+            handlerName as string
           ) || [];
 
         const parameterMetadata: ParameterMetadata[] =
           Reflect.getMetadata(
             MetadataKeys.PARAMETERS,
             ControllerClass.prototype,
-            handlerName as string,
+            handlerName as string
           ) || [];
 
         router[method](path, ...routeMiddlewares, async (req, res, next) => {
@@ -66,7 +66,7 @@ export class ControllersModule extends BaseServerModule {
                 controllerInstance,
                 req,
                 res,
-                next,
+                next
               );
               if (result instanceof Promise) {
                 await result;
@@ -79,7 +79,7 @@ export class ControllersModule extends BaseServerModule {
 
           const maxIndex = Math.max(
             routeHandler.length - 1,
-            ...parameterMetadata.map((param) => param.index),
+            ...parameterMetadata.map((param) => param.index)
           );
 
           const args = new Array(Math.max(0, maxIndex + 1));
@@ -91,20 +91,21 @@ export class ControllersModule extends BaseServerModule {
                   param.data && req.body ? req.body[param.data] : req.body;
                 break;
               case ParameterType.PARAM:
-                args[param.index] =
-                  param.data && req.params
-                    ? req.params[param.data]
-                    : req.params;
+                args[param.index] = param.data
+                  ? (req.params?.[param.data] as any)
+                  : req.params;
                 break;
               case ParameterType.QUERY:
                 args[param.index] =
                   param.data && req.query ? req.query[param.data] : req.query;
                 break;
               case ParameterType.HEADERS:
-                args[param.index] =
-                  param.data && req.headers
-                    ? req.headers[param.data.toLowerCase()]
-                    : req.headers;
+                if (param.data) {
+                  const headerKey = param.data.toLowerCase();
+                  args[param.index] = req.headers?.[headerKey] as any;
+                } else {
+                  args[param.index] = req.headers;
+                }
                 break;
               case ParameterType.FILE: {
                 const files: any = (req as any).files;

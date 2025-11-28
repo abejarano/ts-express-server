@@ -46,7 +46,7 @@ class UsersController {
   async updateUser(
     @Param("userId") userId: string,
     @Body() body: any,
-    @Res() res: any,
+    @Res() res: any
   ) {
     res.json({ userId, ...body });
   }
@@ -112,7 +112,7 @@ describe("BootstrapStandardServer", () => {
     const server = BootstrapStandardServer(
       port,
       routesModule,
-      controllersModule,
+      controllersModule
     );
     await server.initialize();
     const app = server.getApp();
@@ -184,7 +184,7 @@ describe("BootstrapStandardServer", () => {
       port,
       routesModule,
       controllersModule,
-      [service],
+      [service]
     );
 
     expect(server).toBeDefined();
@@ -223,5 +223,16 @@ describe("BootstrapStandardServer", () => {
     expect(response.body).toEqual({ userId: "42", name: "Eve" });
 
     await stop();
+  });
+
+  it("should throw when multiple controller modules are provided", () => {
+    const firstControllers = new ControllersModule([]);
+    const secondControllers = new ControllersModule([]);
+
+    expect(() =>
+      BootstrapStandardServer(port, firstControllers, secondControllers)
+    ).toThrow(
+      "ControllersModule provided multiple times. Pass a single instance only."
+    );
   });
 });
