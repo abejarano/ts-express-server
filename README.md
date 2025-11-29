@@ -44,7 +44,19 @@ yarn add @abejarano/ts-express-server
 
 To enable automatic publishing to npm, you need to configure the following secrets in your repository:
 
-- `NPM_TOKEN`: An npm access token with publish permissions. Create one at [npmjs.com](https://www.npmjs.com/settings/~/tokens)
+- `NPM_TOKEN`: A **Granular Access Token** from npm with publish permissions. Classic tokens are being deprecated by npm.
+  
+  **Steps to create the token:**
+  1. Go to [npmjs.com/settings/~/tokens](https://www.npmjs.com/settings/~/tokens)
+  2. Click on "Generate New Token" → "Granular Access Token"
+  3. Configure:
+     - **Token name**: A descriptive name (e.g., `github-actions-publish`)
+     - **Expiration**: Select the desired duration
+     - **Packages and scopes**: Select "Read and write" and choose the packages/scopes you need (e.g., `@abejarano`)
+     - **Organizations**: If applicable, select your organization
+  4. Click "Generate token" and copy the generated token
+  5. Add the token as `NPM_TOKEN` secret in your GitHub repository (Settings → Secrets and variables → Actions)
+
 - `GH_TOKEN`: A GitHub personal access token for creating releases (optional, defaults to `GITHUB_TOKEN`)
 
 ## Conventional Commits
