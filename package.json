@@ -68,7 +68,7 @@
     "url": "git+https://github.com/abejarano/ts-express-server.git"
   },
   "publishConfig": {
-    "@abejarano:registry": "https://npm.pkg.github.com",
+    "registry": "https://registry.npmjs.org",
     "access": "public"
   }
 }

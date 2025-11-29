@@ -40,6 +40,13 @@ yarn add @abejarano/ts-express-server
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Setting up for Publishing
+
+To enable automatic publishing to npm, you need to configure the following secrets in your repository:
+
+- `NPM_TOKEN`: An npm access token with publish permissions. Create one at [npmjs.com](https://www.npmjs.com/settings/~/tokens)
+- `GH_TOKEN`: A GitHub personal access token for creating releases (optional, defaults to `GITHUB_TOKEN`)
+
 ## Conventional Commits
 
 We use Conventional Commits to automatically generate releases:
