@@ -11,17 +11,13 @@ export class SecurityModule extends BaseServerModule {
   constructor(helmetOptions?: Parameters<typeof helmet>[0]) {
     super();
     this.helmetOptions = helmetOptions || {
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-        },
-      },
-      crossOriginEmbedderPolicy: true,
-      crossOriginOpenerPolicy: true,
-      crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: false,
+
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+
+      crossOriginResourcePolicy: false,
+
       dnsPrefetchControl: true,
       frameguard: { action: "deny" },
       hidePoweredBy: true,
@@ -30,7 +26,6 @@ export class SecurityModule extends BaseServerModule {
       originAgentCluster: true,
       permittedCrossDomainPolicies: false,
       referrerPolicy: { policy: "no-referrer" },
-      xssFilter: true,
     };
   }
   getModuleName(): string {

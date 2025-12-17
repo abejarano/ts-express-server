@@ -18,6 +18,7 @@ export class BootstrapServer {
     this.app.use(bodyParser.urlencoded({ extended: true }));
     this.app.use(cookieParser());
     this.app.set("port", port);
+    this.app.set("trust proxy", 1);
   }
 
   removeModule(moduleName: string): BootstrapServer {
