@@ -1,4 +1,4 @@
-import { Express } from "express";
+import { ServerApp, ServerContext } from "./ServerTypes";
 
 export abstract class BaseServerModule {
   priority: number = 0;
@@ -8,7 +8,10 @@ export abstract class BaseServerModule {
    */
   abstract getModuleName(): string;
 
-  abstract init(app: Express): Promise<void> | void;
+  abstract init(
+    app: ServerApp,
+    context?: ServerContext,
+  ): Promise<void> | void;
 
   async shutdown(): Promise<void> {
     // Default empty shutdown

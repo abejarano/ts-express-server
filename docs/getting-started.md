@@ -5,11 +5,14 @@
 ### Basic Server Setup
 
 ```typescript
-import { BootstrapServer, RoutesModule } from "@abejarano/ts-express-server";
-import { Router } from "express";
+import {
+  BootstrapServer,
+  RoutesModule,
+  createRouter,
+} from "@abejarano/ts-express-server";
 
 // Create a simple route
-const apiRouter = Router();
+const apiRouter = createRouter("bun");
 apiRouter.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
@@ -18,7 +21,9 @@ apiRouter.get("/health", (req, res) => {
 const routesModule = new RoutesModule([{ path: "/api", router: apiRouter }]);
 
 // Create and start server
-const server = new BootstrapServer(3000).addModule(routesModule);
+const server = new BootstrapServer(3000, {
+  runtime: "bun",
+}).addModule(routesModule);
 
 server.start().then(() => {
   console.log("Server is running on http://localhost:3000");
@@ -33,17 +38,19 @@ For most applications, use `BootstrapStandardServer` which includes common modul
 import {
   BootstrapStandardServer,
   RoutesModule,
+  createRouter,
 } from "@abejarano/ts-express-server";
-import { Router } from "express";
 
-const apiRouter = Router();
+const apiRouter = createRouter("bun");
 apiRouter.get("/users", (req, res) => {
   res.json({ users: [] });
 });
 
 const routesModule = new RoutesModule([{ path: "/api", router: apiRouter }]);
 
-const server = BootstrapStandardServer(3000, routesModule);
+const server = BootstrapStandardServer(3000, routesModule, {
+  runtime: "bun",
+});
 
 server.start();
 ```
@@ -119,4 +126,4 @@ const server3 = BootstrapStandardServer(
 
 ### Testing decorated controllers
 
-When writing integration tests you can avoid repeating the bootstrap logic by using `createDecoratedTestApp` from the testing helpers. This utility wires up the controllers, disables non-essential modules, and gives you back an Express app ready for `supertest`.
+When writing integration tests you can avoid repeating the bootstrap logic by using `createDecoratedTestApp` from the testing helpers. This utility wires up the controllers, disables non-essential modules, and gives you back an app instance ready for `supertest`.

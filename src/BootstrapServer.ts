@@ -1,24 +1,34 @@
-import express, { Express } from "express";
-import { Server as HttpServer } from "http";
 import { BaseServerModule, BaseServerService } from "./abstract";
-import bodyParser from "body-parser";
-import cookieParser from "cookie-parser";
+import {
+  ServerAdapter,
+  ServerApp,
+  ServerContext,
+  ServerInstance,
+  ServerRuntime,
+  ServerRuntimeInput,
+} from "./abstract";
+import { BunAdapter, ExpressAdapter } from "./adapters";
+
+export interface BootstrapServerOptions {
+  runtime?: ServerRuntimeInput;
+  adapter?: ServerAdapter;
+}
 
 export class BootstrapServer {
-  private readonly app: Express;
+  private readonly app: ServerApp;
   private readonly port: number;
-  private httpServer?: HttpServer;
+  private server?: ServerInstance;
   private modules: BaseServerModule[] = [];
   private services: BaseServerService[] = [];
+  private readonly adapter: ServerAdapter;
+  private readonly runtime: ServerRuntime;
 
-  constructor(port: number) {
+  constructor(port: number, options?: BootstrapServerOptions) {
     this.port = port;
-    this.app = express();
-    this.app.use(express.json());
-    this.app.use(bodyParser.urlencoded({ extended: true }));
-    this.app.use(cookieParser());
-    this.app.set("port", port);
-    this.app.set("trust proxy", 1);
+    this.adapter = options?.adapter ?? this.createAdapter(options?.runtime);
+    this.runtime = this.adapter.runtime;
+    this.app = this.adapter.createApp();
+    this.adapter.configure(this.app, port);
   }
 
   removeModule(moduleName: string): BootstrapServer {
@@ -67,12 +77,16 @@ export class BootstrapServer {
     return this;
   }
 
-  getApp(): Express {
+  getApp(): ServerApp {
     return this.app;
   }
 
-  getHttpServer(): HttpServer | undefined {
-    return this.httpServer;
+  getServer(): ServerInstance | undefined {
+    return this.server;
+  }
+
+  getHttpServer(): ServerInstance | undefined {
+    return this.server;
   }
 
   async initialize(): Promise<void> {
@@ -83,14 +97,14 @@ export class BootstrapServer {
     await this.initializeServerModules();
 
     return new Promise((resolve) => {
-      this.httpServer = this.app.listen(this.port, () => {
+      this.server = this.adapter.listen(this.app, this.port, () => {
         console.log(`Server running on port ${this.port}`);
 
         this.setupGracefulShutdown();
         resolve();
       });
 
-      this.initializeServices(this.httpServer);
+      this.initializeServices(this.server as ServerInstance);
     });
   }
 
@@ -132,12 +146,12 @@ export class BootstrapServer {
       }
 
       // Close HTTP server
-      if (this.httpServer) {
-        console.log("Closing HTTP server...");
+      if (this.server) {
+        console.log("Closing server...");
         await new Promise<void>((resolve) => {
-          this.httpServer!.close(() => resolve());
+          this.server!.close(() => resolve());
         });
-        console.log("HTTP server closed");
+        console.log("Server closed");
       }
 
       console.log("Graceful shutdown completed. Exiting...");
@@ -159,12 +173,12 @@ export class BootstrapServer {
     return this.modules.some((m) => m instanceof moduleClass);
   }
 
-  private async initializeServices(http: HttpServer): Promise<void> {
+  private async initializeServices(server: ServerInstance): Promise<void> {
     console.log("Starting services...");
 
     for (const service of this.services) {
       try {
-        await service.start(http);
+        await service.start(server);
         console.log(`Service started: ${service.name}`);
       } catch (error) {
         console.error(`Failed to start service ${service.name}:`, error);
@@ -181,9 +195,14 @@ export class BootstrapServer {
 
     console.log("Initializing server modules in priority order:");
 
+    const context: ServerContext = {
+      runtime: this.runtime,
+      adapter: this.adapter,
+    };
+
     for (const module of this.modules) {
       try {
-        await module.init(this.app);
+        await module.init(this.app, context);
         console.log(`Module initialized: ${module.getModuleName()}`);
       } catch (error) {
         console.error(
@@ -205,5 +224,12 @@ export class BootstrapServer {
 
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
+  }
+
+  private createAdapter(runtime?: ServerRuntimeInput): ServerAdapter {
+    if (runtime === ServerRuntime.Bun || runtime === "bun") {
+      return new BunAdapter();
+    }
+    return new ExpressAdapter();
   }
 }

@@ -1,6 +1,6 @@
-# TypeScript Express Server Framework
+# TypeScript Server Framework (Express + Bun)
 
-A modular and extensible TypeScript framework for building Express.js servers with a clean architecture pattern that separates concerns between server modules and services.
+A modular and extensible TypeScript framework for building Express or Bun servers with a clean architecture pattern that separates concerns between server modules and services.
 
 ## Features
 
@@ -12,6 +12,7 @@ A modular and extensible TypeScript framework for building Express.js servers wi
 - 🛡️ **Type Safety**: Full TypeScript support with strong typing
 - 🔧 **Configurable**: Highly customizable modules and services
 - 🎨 **Decorators**: Clean and declarative controller definition
+- ⚙️ **Runtime Choice**: Run on Express (Node) or Bun via `ServerRuntime`
 
 ## Installation
 
@@ -31,6 +32,17 @@ yarn add @abejarano/ts-express-server
 - [Testing Helpers](docs/testing.md)
 - [API Reference](docs/api-reference.md)
 - [Examples](docs/examples.md)
+
+## Runtime Selection
+
+```typescript
+import { BootstrapServer } from "@abejarano/ts-express-server";
+
+const server = new BootstrapServer(3000, { runtime: "bun" });
+server.start();
+```
+
+You can also use `ServerRuntime.Bun` and `ServerRuntime.Express` if you prefer the enum.
 
 ## Contributing
 

@@ -1,5 +1,10 @@
-import { Express } from "express";
 import { BaseServerModule } from "../abstract";
+import {
+  ServerApp,
+  ServerContext,
+  ServerHandler,
+  ServerRuntime,
+} from "../abstract";
 
 import rateLimit from "express-rate-limit";
 
@@ -23,8 +28,55 @@ export class RateLimitModule extends BaseServerModule {
     return this.name;
   }
 
-  init(app: Express): void {
-    const limiter = rateLimit(this.limiterOptions);
-    app.use(limiter);
+  init(app: ServerApp, context?: ServerContext): void {
+    const runtime = context?.runtime ?? ServerRuntime.Express;
+    if (runtime === ServerRuntime.Express) {
+      const limiter = rateLimit(this.limiterOptions);
+      app.use(limiter as ServerHandler);
+      return;
+    }
+
+    app.use(createRateLimitMiddleware(this.limiterOptions));
   }
 }
+
+const createRateLimitMiddleware = (
+  options: Parameters<typeof rateLimit>[0],
+): ServerHandler => {
+  const windowMs = options?.windowMs ?? 8 * 60 * 1000;
+  const legacyMax = (options as { max?: number } | undefined)?.max;
+  const limit = options?.limit ?? legacyMax ?? 100;
+  const hits = new Map<string, { count: number; expiresAt: number }>();
+
+  return (req, res, next) => {
+    const key = req.ip || String(req.headers?.["x-forwarded-for"] || "unknown");
+    const now = Date.now();
+    const existing = hits.get(key);
+
+    if (!existing || existing.expiresAt <= now) {
+      hits.set(key, { count: 1, expiresAt: now + windowMs });
+    } else {
+      existing.count += 1;
+    }
+
+    const current = hits.get(key)!;
+    const remaining = Math.max(0, limit - current.count);
+
+    if (options?.standardHeaders) {
+      res.set("ratelimit-limit", String(limit));
+      res.set("ratelimit-remaining", String(remaining));
+      res.set("ratelimit-reset", String(Math.ceil(current.expiresAt / 1000)));
+    }
+
+    if (current.count > limit) {
+      res.status(429).json(
+        options?.message || {
+          message: "Too many requests, please try again later.",
+        },
+      );
+      return;
+    }
+
+    next();
+  };
+};

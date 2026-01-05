@@ -1,24 +1,16 @@
-import { Express, NextFunction, Request, Response } from "express";
 import { v4 } from "uuid";
 import { BaseServerModule } from "../abstract";
+import { NextFunction, ServerApp, ServerContext, ServerRequest } from "../abstract";
 import { AsyncLocalStorage } from "async_hooks";
-
-declare global {
-  namespace Express {
-    interface Request {
-      requestId?: string;
-    }
-  }
-}
 
 export class RequestContextModule extends BaseServerModule {
   name = "RequestContext";
   priority = -50;
 
-  init(app: Express): void {
+  init(app: ServerApp, _context?: ServerContext): void {
     const requestContextMiddleware = (
-      req: Request,
-      res: Response,
+      req: ServerRequest,
+      _res: unknown,
       next: NextFunction,
     ) => {
       const incomingRequestId = req.headers["x-request-id"];
@@ -27,6 +19,7 @@ export class RequestContextModule extends BaseServerModule {
           ? incomingRequestId[0]
           : incomingRequestId) || v4();
 
+      req.requestId = requestId;
       RequestContext.run({ requestId }, () => {
         next();
       });

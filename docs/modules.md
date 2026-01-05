@@ -17,14 +17,17 @@ You can opt-out of any of these when using `BootstrapStandardServer` by passing 
 ### Basic Module Example
 
 ```typescript
-import { Express } from "express";
-import { BaseServerModule } from "@abejarano/ts-express-server";
+import {
+  BaseServerModule,
+  ServerApp,
+  ServerContext,
+} from "@abejarano/ts-express-server";
 
 export class LoggingModule extends BaseServerModule {
   name = "Logging";
   priority = -100; // Higher priority (loads earlier)
 
-  init(app: Express): void {
+  init(app: ServerApp, _context: ServerContext): void {
     app.use((req, res, next) => {
       console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
       next();
@@ -36,8 +39,11 @@ export class LoggingModule extends BaseServerModule {
 ### Advanced Module with Configuration
 
 ```typescript
-import { Express } from "express";
-import { BaseServerModule } from "@abejarano/ts-express-server";
+import {
+  BaseServerModule,
+  ServerApp,
+  ServerContext,
+} from "@abejarano/ts-express-server";
 import compression from "compression";
 
 export interface CompressionConfig {
@@ -55,7 +61,7 @@ export class CompressionModule extends BaseServerModule {
     super();
   }
 
-  init(app: Express): void {
+  init(app: ServerApp, _context: ServerContext): void {
     app.use(
       compression({
         level: this.config.level,

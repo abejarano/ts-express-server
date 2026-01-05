@@ -1,7 +1,10 @@
 import "reflect-metadata";
 export { BootstrapServer } from "./BootstrapServer";
+export type { BootstrapServerOptions } from "./BootstrapServer";
 export { BootstrapStandardServer } from "./BootstrapStandardServer";
 export type { BootstrapStandardServerOptions } from "./BootstrapStandardServer";
+export * from "./adapters";
+export * from "./createRouter";
 export * from "./modules";
 export * from "./abstract";
 export * from "./decorators";

@@ -1,8 +1,8 @@
-import { RequestHandler } from "express";
 import { MetadataKeys } from "./MetadataKeys";
+import { ServerHandler } from "../abstract";
 import "reflect-metadata";
 
-export function Use(middleware: RequestHandler | RequestHandler[]) {
+export function Use(middleware: ServerHandler | ServerHandler[]) {
   return function (target: any, key?: string, descriptor?: PropertyDescriptor) {
     const newMiddlewares = Array.isArray(middleware)
       ? middleware

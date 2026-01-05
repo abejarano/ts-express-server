@@ -1,5 +1,6 @@
-import { Express, Router } from "express";
 import { BaseServerModule } from "../abstract";
+import { ServerApp, ServerContext } from "../abstract";
+import { ExpressAdapter } from "../adapters";
 import { MetadataKeys } from "../decorators/MetadataKeys";
 import { IRouter } from "../decorators/Handlers";
 import { ParameterMetadata, ParameterType } from "../decorators/Parameters";
@@ -17,7 +18,7 @@ export class ControllersModule extends BaseServerModule {
     return this.name;
   }
 
-  init(app: Express): void {
+  init(app: ServerApp, context?: ServerContext): void {
     this.controllers.forEach((ControllerClass) => {
       const basePath: string = Reflect.getMetadata(
         MetadataKeys.BASE_PATH,
@@ -33,7 +34,8 @@ export class ControllersModule extends BaseServerModule {
         return;
       }
 
-      const router = Router();
+      const adapter = context?.adapter ?? new ExpressAdapter();
+      const router = adapter.createRouter();
 
       // Create a single controller instance per controller class (singleton pattern)
       const controllerInstance = new (ControllerClass as any)();
@@ -59,7 +61,12 @@ export class ControllersModule extends BaseServerModule {
             handlerName as string
           ) || [];
 
-        router[method](path, ...routeMiddlewares, async (req, res, next) => {
+        const routerMethod = (router as any)[method] as (
+          path: string,
+          ...handlers: any[]
+        ) => void;
+
+        routerMethod(path, ...routeMiddlewares, async (req, res, next) => {
           if (parameterMetadata.length === 0) {
             try {
               const result = routeHandler.call(
