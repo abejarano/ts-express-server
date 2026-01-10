@@ -59,7 +59,10 @@ const createSecurityMiddleware = (options: HelmetOptions): ServerHandler => {
   return (_req, res, next) => {
     const frameguard = options?.frameguard;
     if (frameguard && typeof frameguard === "object" && "action" in frameguard) {
-      res.set("x-frame-options", frameguard.action.toUpperCase());
+      const action = (frameguard as { action?: string }).action;
+      if (action) {
+        res.set("x-frame-options", action.toUpperCase());
+      }
     }
 
     if (options?.ieNoOpen !== false) {

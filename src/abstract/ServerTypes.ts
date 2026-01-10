@@ -8,7 +8,7 @@ export type ServerRuntimeInput = ServerRuntime | "express" | "bun";
 export const normalizeRuntime = (
   runtime?: ServerRuntimeInput,
 ): ServerRuntime => {
-  if (runtime === ServerRuntime.Bun || runtime === "bun") {
+  if (runtime && runtime !== ServerRuntime.Express && runtime !== "express") {
     return ServerRuntime.Bun;
   }
   return ServerRuntime.Express;

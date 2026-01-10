@@ -103,8 +103,12 @@ export class ControllersModule extends BaseServerModule {
           parameterMetadata.forEach((param) => {
             switch (param.type) {
               case ParameterType.BODY:
-                args[param.index] =
-                  param.data && req.body ? req.body[param.data] : req.body;
+                if (param.data) {
+                  const body = req.body as Record<string, unknown> | undefined;
+                  args[param.index] = body ? body[param.data] : undefined;
+                } else {
+                  args[param.index] = req.body;
+                }
                 break;
               case ParameterType.PARAM:
                 args[param.index] = param.data
