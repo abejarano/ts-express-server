@@ -8,9 +8,10 @@ import {
   RoutesModule,
   SecurityModule,
 } from "./modules";
-import { BaseServerModule, BaseServerService } from "./abstract";
+import { BaseServerModule, BaseServerService, ServerRuntime } from "./abstract";
 
 export interface BootstrapStandardServerOptions {
+  runtime?: ServerRuntime;
   modules?: {
     cors?: BaseServerModule | false;
     security?: BaseServerModule | false;
@@ -159,15 +160,17 @@ export function BootstrapStandardServer(
     modulesToRegister.push(...preset.extra);
   }
 
-  const expressServer = new BootstrapServer(port).addModules(modulesToRegister);
+  const server = new BootstrapServer(port, {
+    runtime: options?.runtime,
+  }).addModules(modulesToRegister);
 
   if (controllersModule) {
-    expressServer.addModule(controllersModule);
+    server.addModule(controllersModule);
   }
 
   if (services) {
-    expressServer.addServices(services);
+    server.addServices(services);
   }
 
-  return expressServer;
+  return server;
 }

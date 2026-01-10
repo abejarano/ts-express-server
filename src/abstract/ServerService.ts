@@ -1,9 +1,9 @@
-import { Server as HttpServer } from "http";
+import { ServerInstance } from "./ServerTypes";
 
 export abstract class BaseServerService {
   abstract name: string;
 
-  abstract start(http: HttpServer): Promise<void> | void;
+  abstract start(server: ServerInstance): Promise<void> | void;
 
   async stop(): Promise<void> {
     // Default empty stop

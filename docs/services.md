@@ -5,8 +5,7 @@
 ### Database Service Example
 
 ```typescript
-import { Server as HttpServer } from "http";
-import { BaseServerService } from "@abejarano/ts-express-server";
+import { BaseServerService, ServerInstance } from "@abejarano/ts-express-server";
 import mongoose from "mongoose";
 
 export class MongoDBService extends BaseServerService {
@@ -16,7 +15,7 @@ export class MongoDBService extends BaseServerService {
     super();
   }
 
-  async start(http: HttpServer): Promise<void> {
+  async start(_server: ServerInstance): Promise<void> {
     try {
       await mongoose.connect(this.connectionString, {
         maxPoolSize: 10,
@@ -55,16 +54,15 @@ export class MongoDBService extends BaseServerService {
 ### WebSocket Service Example
 
 ```typescript
-import { Server as HttpServer } from "http";
-import { BaseServerService } from "@abejarano/ts-express-server";
+import { BaseServerService, ServerInstance } from "@abejarano/ts-express-server";
 import { Server as SocketIOServer } from "socket.io";
 
 export class WebSocketService extends BaseServerService {
   name = "WebSocket";
   private io?: SocketIOServer;
 
-  async start(http: HttpServer): Promise<void> {
-    this.io = new SocketIOServer(http, {
+  async start(server: ServerInstance): Promise<void> {
+    this.io = new SocketIOServer(server as any, {
       cors: {
         origin: "*",
         methods: ["GET", "POST"],

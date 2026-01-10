@@ -48,6 +48,7 @@ it("updates a user", async () => {
 | `port`              | `number`                             | Port used when initializing (defaults to `0`).                            |
 | `services`          | `BaseServerService[]`                | Services to preload for tests.                                            |
 | `standardOptions`   | `BootstrapStandardServerOptions`     | Fine-tune the preset modules (same pattern as `BootstrapStandardServer`). |
+| `runtime`           | `ServerRuntime | "bun" | "express"`  | Select the runtime adapter (Express or Bun).                              |
 
 The helper disables `CorsModule`, `SecurityModule`, and `RateLimitModule` by default to keep tests focused. You can re-enable or replace them through `standardOptions.modules`.
 

@@ -1,10 +1,16 @@
-import { Express, RequestHandler, Router } from "express";
 import { BaseServerModule } from "../abstract";
+import {
+  ServerApp,
+  ServerContext,
+  ServerHandler,
+  ServerRouter,
+  ServerRuntime,
+} from "../abstract";
 
 export interface RouteConfig {
   path: string;
-  router: Router;
-  middleware?: RequestHandler[] | RequestHandler;
+  router: ServerRouter;
+  middleware?: ServerHandler[] | ServerHandler;
 }
 
 export class RoutesModule extends BaseServerModule {
@@ -32,10 +38,22 @@ export class RoutesModule extends BaseServerModule {
     this.routes.push(...routes);
   }
 
-  init(app: Express): void {
+  init(app: ServerApp, context?: ServerContext): void {
+    if (context?.runtime === ServerRuntime.Bun) {
+      console.warn(
+        "[RoutesModule] Express routers are not supported on Bun. Migrate to decorated controllers for Bun runtime.",
+      );
+    }
+
     this.routes.forEach(({ path, router, middleware }) => {
-      if (middleware && middleware.length > 0) {
-        app.use(path, middleware, router);
+      const middlewareList = Array.isArray(middleware)
+        ? middleware
+        : middleware
+          ? [middleware]
+          : [];
+
+      if (middlewareList.length > 0) {
+        app.use(path, ...middlewareList, router);
       } else {
         app.use(path, router);
       }

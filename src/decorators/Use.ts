@@ -1,8 +1,8 @@
-import { RequestHandler } from "express";
 import { MetadataKeys } from "./MetadataKeys";
+import { ServerHandler } from "../abstract";
 import "reflect-metadata";
 
-export function Use(middleware: RequestHandler | RequestHandler[]) {
+export function Use(middleware: ServerHandler | ServerHandler[]) {
   return function (target: any, key?: string, descriptor?: PropertyDescriptor) {
     const newMiddlewares = Array.isArray(middleware)
       ? middleware
@@ -11,7 +11,7 @@ export function Use(middleware: RequestHandler | RequestHandler[]) {
     if (key) {
       // Method decorator
       const middlewares =
-        Reflect.getMetadata(MetadataKeys.MIDDLEWARE, target, key) || [];
+        Reflect.getMetadata<any[]>(MetadataKeys.MIDDLEWARE, target, key) || [];
       Reflect.defineMetadata(
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],
@@ -21,7 +21,7 @@ export function Use(middleware: RequestHandler | RequestHandler[]) {
     } else {
       // Class decorator
       const middlewares =
-        Reflect.getMetadata(MetadataKeys.MIDDLEWARE, target) || [];
+        Reflect.getMetadata<any[]>(MetadataKeys.MIDDLEWARE, target) || [];
       Reflect.defineMetadata(
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],

@@ -1,8 +1,7 @@
-import { Express } from "express";
 import { BootstrapStandardServer } from "../BootstrapStandardServer";
 import type { BootstrapServer } from "../BootstrapServer";
 import { ControllersModule } from "../modules";
-import { BaseServerService } from "../abstract";
+import { BaseServerService, ServerApp, ServerRuntime } from "../abstract";
 import { BootstrapStandardServerOptions } from "../BootstrapStandardServer";
 
 type ControllerClass<T = any> = new (...args: any[]) => T;
@@ -13,17 +12,18 @@ export interface DecoratedTestAppOptions {
   port?: number;
   services?: BaseServerService[];
   standardOptions?: BootstrapStandardServerOptions;
+  runtime?: ServerRuntime;
 }
 
 export interface DecoratedTestAppResult {
-  app: Express;
+  app: ServerApp;
   server: BootstrapServer;
   stop: () => Promise<void>;
 }
 
 const mergeOptions = (
   base: BootstrapStandardServerOptions,
-  override?: BootstrapStandardServerOptions,
+  override?: BootstrapStandardServerOptions
 ): BootstrapStandardServerOptions => {
   if (!override) {
     return base;
@@ -35,6 +35,7 @@ const mergeOptions = (
   ];
 
   return {
+    runtime: override.runtime ?? base.runtime,
     services: mergedServices.length ? mergedServices : undefined,
     modules: {
       ...(base.modules ?? {}),
@@ -44,7 +45,7 @@ const mergeOptions = (
 };
 
 export async function createDecoratedTestApp(
-  options: DecoratedTestAppOptions,
+  options: DecoratedTestAppOptions
 ): Promise<DecoratedTestAppResult> {
   const {
     controllers = [],
@@ -68,7 +69,10 @@ export async function createDecoratedTestApp(
 
   const mergedOptions = mergeOptions(baseOptions, standardOptions);
 
-  const server = BootstrapStandardServer(port, moduleInstance, mergedOptions);
+  const server = BootstrapStandardServer(port, moduleInstance, {
+    ...mergedOptions,
+    runtime: options.runtime ?? mergedOptions.runtime,
+  });
 
   await server.initialize();
 
@@ -76,9 +80,11 @@ export async function createDecoratedTestApp(
     app: server.getApp(),
     server,
     stop: async () => {
-      const httpServer = server.getHttpServer();
-      if (httpServer) {
-        await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+      const serverInstance = server.getServer();
+      if (serverInstance) {
+        await new Promise<void>((resolve) =>
+          serverInstance.close(() => resolve())
+        );
       }
     },
   };

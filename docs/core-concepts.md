@@ -2,7 +2,7 @@
 
 ## ServerModule
 
-**ServerModules** are components that configure and enhance the Express.js application during startup. They handle middleware setup, route registration, and other Express-specific configurations.
+**ServerModules** are components that configure and enhance the server application during startup. They handle middleware setup, route registration, and other runtime-specific configurations.
 
 Key characteristics:
 
@@ -14,13 +14,13 @@ Key characteristics:
 
 ## ServerService
 
-**ServerServices** are background services that start when the HTTP server is ready. They handle long-running tasks, external connections, and background processes.
+**ServerServices** are background services that start when the server is ready. They handle long-running tasks, external connections, and background processes.
 
 Key characteristics:
 
 - Extend `BaseServerService`
-- Start after the HTTP server is listening via the `start()` method
-- Receive the HTTP server instance for advanced integrations
+- Start after the server is listening via the `start()` method
+- Receive the server instance for advanced integrations
 - Support graceful shutdown via the `stop()` method
 - Examples: Database connections, WebSocket servers, background job processors
 

@@ -10,9 +10,8 @@ In a real project, you should separate your routes, controllers, and services in
 
 ```typescript
 import { RoutesModule } from "@abejarano/ts-express-server";
-import { Router } from "express";
 
-// Import your sub-routers
+// Import your sub-routers (built using createRouter)
 import churchRouters from "./Church.routers";
 import memberRouters from "./Member.routers";
 import financialRouter from "./Financial.routers";
@@ -96,8 +95,19 @@ import {
   BootstrapStandardServer,
   RoutesModule,
   BaseServerService,
+  createRouter,
 } from "@abejarano/ts-express-server";
-import { Router } from "express";
 
-// ... (rest of the simple example)
+const router = createRouter("bun");
+router.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+const routesModule = new RoutesModule([{ path: "/api", router }]);
+
+const server = BootstrapStandardServer(3000, routesModule, {
+  runtime: "bun",
+});
+
+server.start();
 ```

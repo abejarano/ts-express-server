@@ -1,32 +1,24 @@
-import { Express, NextFunction, Request, Response } from "express";
-import { v4 } from "uuid";
 import { BaseServerModule } from "../abstract";
+import { NextFunction, ServerApp, ServerContext, ServerRequest } from "../abstract";
 import { AsyncLocalStorage } from "async_hooks";
-
-declare global {
-  namespace Express {
-    interface Request {
-      requestId?: string;
-    }
-  }
-}
 
 export class RequestContextModule extends BaseServerModule {
   name = "RequestContext";
   priority = -50;
 
-  init(app: Express): void {
-    const requestContextMiddleware = (
-      req: Request,
-      res: Response,
+  init(app: ServerApp, _context?: ServerContext): void {
+    const requestContextMiddleware = async (
+      req: ServerRequest,
+      _res: unknown,
       next: NextFunction,
     ) => {
       const incomingRequestId = req.headers["x-request-id"];
       const requestId =
         (Array.isArray(incomingRequestId)
           ? incomingRequestId[0]
-          : incomingRequestId) || v4();
+          : incomingRequestId) || (await createRequestId());
 
+      req.requestId = requestId;
       RequestContext.run({ requestId }, () => {
         next();
       });
@@ -64,3 +56,21 @@ class RequestContext {
 }
 
 export { RequestContext };
+
+const createRequestId = async (): Promise<string> => {
+  const cryptoObj = (globalThis as { crypto?: Crypto }).crypto;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+
+  try {
+    const uuidModule = (await import("uuid")) as { v4?: () => string };
+    if (uuidModule.v4) {
+      return uuidModule.v4();
+    }
+  } catch {
+    // Ignore and fallback.
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};

@@ -5,8 +5,14 @@ You can define your routes using decorators for a cleaner and more declarative a
 ## 1. Create a Controller
 
 ```typescript
-import { Request, Response } from "express";
-import { Controller, Get, Post, Use } from "@abejarano/ts-express-server";
+import {
+  Controller,
+  Get,
+  Post,
+  Use,
+  ServerRequest,
+  ServerResponse,
+} from "@abejarano/ts-express-server";
 
 // Example middleware
 const AuthMiddleware = (req: any, res: any, next: any) => next();
@@ -14,13 +20,13 @@ const AuthMiddleware = (req: any, res: any, next: any) => next();
 @Controller("/users")
 export class UserController {
   @Get("/")
-  async getUsers(req: Request, res: Response) {
+  async getUsers(req: ServerRequest, res: ServerResponse) {
     res.json({ users: [] });
   }
 
   @Post("/")
   @Use(AuthMiddleware)
-  async createUser(req: Request, res: Response) {
+  async createUser(req: ServerRequest, res: ServerResponse) {
     res.json({ message: "User created" });
   }
 }
@@ -49,7 +55,7 @@ server.start();
 
 ## 3. Parameter Decorators
 
-You can use parameter decorators to access common Express objects without manually reading `req` and `res`.
+You can use parameter decorators to access common request/response objects without manually reading `req` and `res`.
 
 ```typescript
 import {
@@ -58,8 +64,8 @@ import {
   Param,
   Body,
   Res,
+  ServerResponse,
 } from "@abejarano/ts-express-server";
-import { Response } from "express";
 
 @Controller("/users")
 export class UserController {
@@ -67,7 +73,7 @@ export class UserController {
   async updateUser(
     @Param("userId") userId: string,
     @Body() body: UpdateUserDto,
-    @Res() res: Response
+    @Res() res: ServerResponse
   ) {
     res.json({ userId, ...body });
   }
@@ -80,12 +86,14 @@ Available parameter decorators:
 - `@Param(name?)` – Access route params
 - `@Query(name?)` – Access query params
 - `@Headers(name?)` – Access request headers
-- `@Req()` – Inject the Express `Request`
-- `@Res()` – Inject the Express `Response`
-- `@Next()` – Inject the Express `next` handler
-- `@UploadedFile(name?)` – Access files processed by `express-fileupload`
+- `@Req()` – Inject the request object
+- `@Res()` – Inject the response object
+- `@Next()` – Inject the `next` handler
+- `@UploadedFile(name?)` – Access files processed by the upload module
 
 Decorated parameters take precedence; any remaining parameters fallback to the standard `(req, res, next)` order for compatibility.
+
+In Bun runtime, `@UploadedFile` returns a `File` from `FormData` instead of the `express-fileupload` shape.
 
 ## 4. End-to-End Example
 
@@ -98,9 +106,8 @@ import {
   Post,
   Res,
   UploadedFile,
+  ServerResponse,
 } from "@abejarano/ts-express-server";
-import { Response } from "express";
-import type { UploadedFile } from "express-fileupload";
 
 interface CreateReportDto {
   name: string;
@@ -112,8 +119,8 @@ export class ReportController {
   @Post("/")
   async createReport(
     @Body() body: CreateReportDto,
-    @UploadedFile("file") uploadedFile: UploadedFile,
-    @Res() res: Response
+    @UploadedFile("file") uploadedFile: unknown,
+    @Res() res: ServerResponse
   ) {
     if (!uploadedFile) {
       res.status(400).json({ message: "Missing file" });
@@ -133,7 +140,7 @@ export class ReportController {
 
 Key takeaways from the example:
 
-- `BootstrapStandardServer` ships with `FileUploadModule`, so `express-fileupload` is already wired up.
+- `BootstrapStandardServer` ships with `FileUploadModule`, so file parsing is already wired up.
 - `@UploadedFile("file")` expects the multipart field name exactly as sent by the client (for example `<input name="file" />`).
 - DTOs and file typings depend on your contracts; reuse shared interfaces to keep your API types in sync.
 
