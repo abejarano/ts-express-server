@@ -1,9 +1,13 @@
 import { MetadataKeys } from "./MetadataKeys";
+import { assertLegacyDecorator } from "./DecoratorGuards";
 import { ServerHandler } from "../abstract";
 import "reflect-metadata";
 
 export function Use(middleware: ServerHandler | ServerHandler[]) {
-  return function (target: any, key?: string, descriptor?: PropertyDescriptor) {
+  return function (...args: any[]) {
+    assertLegacyDecorator(args, "@Use");
+    const target = args[0];
+    const key = args[1] as string | symbol | undefined;
     const newMiddlewares = Array.isArray(middleware)
       ? middleware
       : [middleware];

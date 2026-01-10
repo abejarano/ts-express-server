@@ -2,6 +2,7 @@ import { BootstrapServer } from "../src/BootstrapServer";
 import { ControllersModule } from "../src/modules";
 import { Controller, Get, Post, Body, Res } from "../src/decorators";
 import { ServerResponse, ServerRuntime } from "../src/abstract";
+import { createDecoratedTestApp } from "../src/testing";
 
 @Controller("/bun")
 class BunController {
@@ -53,5 +54,22 @@ describe("Bun runtime", () => {
     await expect(response.json()).resolves.toEqual({
       body: { message: "hello" },
     });
+  });
+
+  it("creates a controller with Bun runtime using the test helper", async () => {
+    const { app, stop } = await createDecoratedTestApp({
+      controllers: [BunController],
+      runtime: ServerRuntime.Bun,
+    });
+
+    const handler = (app as any).createFetchHandler();
+    const response = await handler(
+      new Request("http://localhost/bun/health", { method: "GET" })
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+
+    await stop();
   });
 });

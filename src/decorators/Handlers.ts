@@ -1,4 +1,5 @@
 import { MetadataKeys } from "./MetadataKeys";
+import { assertLegacyDecorator } from "./DecoratorGuards";
 import "reflect-metadata";
 
 export enum Methods {
@@ -17,7 +18,10 @@ export interface IRouter {
 
 function methodDecorator(method: Methods) {
   return function (path: string) {
-    return function (target: any, key: string, descriptor: PropertyDescriptor) {
+    return function (...args: any[]) {
+      assertLegacyDecorator(args, `@${method.toUpperCase()}`);
+      const target = args[0];
+      const key = args[1] as string | symbol;
       const routers: IRouter[] =
         Reflect.getMetadata(MetadataKeys.ROUTERS, target) || [];
 
