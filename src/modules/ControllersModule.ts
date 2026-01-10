@@ -1,5 +1,11 @@
 import { BaseServerModule } from "../abstract";
-import { ServerApp, ServerContext } from "../abstract";
+import {
+  NextFunction,
+  ServerApp,
+  ServerContext,
+  ServerRequest,
+  ServerResponse,
+} from "../abstract";
 import { ExpressAdapter } from "../adapters";
 import { MetadataKeys } from "../decorators/MetadataKeys";
 import { IRouter } from "../decorators/Handlers";
@@ -66,7 +72,10 @@ export class ControllersModule extends BaseServerModule {
           ...handlers: any[]
         ) => void;
 
-        routerMethod(path, ...routeMiddlewares, async (req, res, next) => {
+        routerMethod(
+          path,
+          ...routeMiddlewares,
+          async (req: ServerRequest, res: ServerResponse, next: NextFunction) => {
           if (parameterMetadata.length === 0) {
             try {
               const result = routeHandler.call(
@@ -162,7 +171,8 @@ export class ControllersModule extends BaseServerModule {
           } catch (error) {
             return next(error);
           }
-        });
+          },
+        );
       });
 
       app.use(basePath, router);

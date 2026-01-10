@@ -6,6 +6,7 @@ import {
   ServerInstance,
   ServerRuntime,
   ServerRuntimeInput,
+  normalizeRuntime,
 } from "./abstract";
 import { BunAdapter, ExpressAdapter } from "./adapters";
 
@@ -227,7 +228,7 @@ export class BootstrapServer {
   }
 
   private createAdapter(runtime?: ServerRuntimeInput): ServerAdapter {
-    if (runtime === ServerRuntime.Bun || runtime === "bun") {
+    if (normalizeRuntime(runtime) === ServerRuntime.Bun) {
       return new BunAdapter();
     }
     return new ExpressAdapter();

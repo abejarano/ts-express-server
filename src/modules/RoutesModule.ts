@@ -1,5 +1,11 @@
 import { BaseServerModule } from "../abstract";
-import { ServerApp, ServerContext, ServerHandler, ServerRouter } from "../abstract";
+import {
+  ServerApp,
+  ServerContext,
+  ServerHandler,
+  ServerRouter,
+  ServerRuntime,
+} from "../abstract";
 
 export interface RouteConfig {
   path: string;
@@ -33,7 +39,7 @@ export class RoutesModule extends BaseServerModule {
   }
 
   init(app: ServerApp, context?: ServerContext): void {
-    if (context?.runtime === "bun") {
+    if (context?.runtime === ServerRuntime.Bun) {
       console.warn(
         "[RoutesModule] Express routers are not supported on Bun. Migrate to decorated controllers for Bun runtime.",
       );

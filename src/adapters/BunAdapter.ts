@@ -26,7 +26,7 @@ type RouteLayer = {
 class BunResponse implements ServerResponse {
   private statusCode = 200;
   private headers = new Headers();
-  private body: BodyInit | null = null;
+  private body: unknown = null;
   private ended = false;
   private rawResponse?: Response;
   private readonly endPromise: Promise<void>;
@@ -113,7 +113,7 @@ class BunResponse implements ServerResponse {
       return this.rawResponse;
     }
 
-    return new Response(this.body, {
+    return new Response(this.body as BodyInit | null, {
       status: this.statusCode,
       headers: this.headers,
     });
@@ -125,8 +125,8 @@ class BunRouter implements ServerRouter {
   private routes: RouteLayer[] = [];
 
   use(
-    pathOrHandler: string | ServerHandler,
-    ...handlers: Array<ServerHandler | ServerRouter>
+    pathOrHandler: string | ServerHandler | ServerHandler[] | ServerRouter,
+    ...handlers: Array<ServerHandler | ServerHandler[] | ServerRouter>
   ): void {
     if (typeof pathOrHandler === "string") {
       const path = pathOrHandler;
@@ -466,9 +466,9 @@ function matchPath(
 }
 
 function normalizeHandlers(
-  inputs: Array<ServerHandler | ServerHandler[] | BunRouter>,
-): Array<ServerHandler | BunRouter> {
-  const handlers: Array<ServerHandler | BunRouter> = [];
+  inputs: Array<ServerHandler | ServerHandler[] | ServerRouter>,
+): Array<ServerHandler | ServerRouter> {
+  const handlers: Array<ServerHandler | ServerRouter> = [];
   for (const input of inputs) {
     if (Array.isArray(input)) {
       handlers.push(...input);

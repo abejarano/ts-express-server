@@ -105,7 +105,11 @@ const resolveOrigin = (
       if (err) {
         return;
       }
-      resolved = value === true ? requestOrigin : value || undefined;
+      if (value === true) {
+        resolved = requestOrigin || "*";
+      } else if (typeof value === "string") {
+        resolved = value;
+      }
     });
     return resolved;
   }

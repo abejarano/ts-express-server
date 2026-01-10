@@ -40,8 +40,14 @@ export class SecurityModule extends BaseServerModule {
   init(app: ServerApp, context?: ServerContext): void {
     const runtime = context?.runtime ?? ServerRuntime.Express;
     if (runtime === ServerRuntime.Express) {
-      const helmet = require("helmet") as typeof import("helmet");
-      app.use(helmet(this.helmetOptions) as ServerHandler);
+      const helmetModule = require("helmet") as typeof import("helmet");
+      const helmet =
+        (helmetModule as { default?: unknown }).default ?? helmetModule;
+      app.use(
+        (helmet as (options: HelmetOptions) => unknown)(
+          this.helmetOptions,
+        ) as ServerHandler,
+      );
       return;
     }
 
@@ -51,8 +57,9 @@ export class SecurityModule extends BaseServerModule {
 
 const createSecurityMiddleware = (options: HelmetOptions): ServerHandler => {
   return (_req, res, next) => {
-    if (options?.frameguard?.action) {
-      res.set("x-frame-options", options.frameguard.action.toUpperCase());
+    const frameguard = options?.frameguard;
+    if (frameguard && typeof frameguard === "object" && "action" in frameguard) {
+      res.set("x-frame-options", frameguard.action.toUpperCase());
     }
 
     if (options?.ieNoOpen !== false) {
@@ -71,12 +78,13 @@ const createSecurityMiddleware = (options: HelmetOptions): ServerHandler => {
       res.set("x-permitted-cross-domain-policies", "none");
     }
 
-    if (options?.referrerPolicy?.policy) {
+    const referrerPolicy = options?.referrerPolicy;
+    if (referrerPolicy && typeof referrerPolicy === "object" && "policy" in referrerPolicy) {
       res.set(
         "referrer-policy",
-        Array.isArray(options.referrerPolicy.policy)
-          ? options.referrerPolicy.policy.join(",")
-          : options.referrerPolicy.policy,
+        Array.isArray(referrerPolicy.policy)
+          ? referrerPolicy.policy.join(",")
+          : referrerPolicy.policy,
       );
     }
 

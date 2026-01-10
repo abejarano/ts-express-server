@@ -12,9 +12,9 @@ export class RateLimitModule extends BaseServerModule {
   name = "RateLimit";
   priority = -70;
 
-  private limiterOptions: RateLimitOptions;
+  private limiterOptions: Partial<RateLimitOptions>;
 
-  constructor(limiterOptions?: RateLimitOptions) {
+  constructor(limiterOptions?: Partial<RateLimitOptions>) {
     super();
     this.limiterOptions = limiterOptions || {
       windowMs: 8 * 60 * 1000, // 8 minutes
@@ -31,9 +31,13 @@ export class RateLimitModule extends BaseServerModule {
   init(app: ServerApp, context?: ServerContext): void {
     const runtime = context?.runtime ?? ServerRuntime.Express;
     if (runtime === ServerRuntime.Express) {
-      const rateLimit =
+      const rateLimitModule =
         require("express-rate-limit") as typeof import("express-rate-limit");
-      const limiter = rateLimit(this.limiterOptions);
+      const rateLimit =
+        (rateLimitModule as { default?: unknown }).default ?? rateLimitModule;
+      const limiter = (rateLimit as (options: RateLimitOptions) => unknown)(
+        this.limiterOptions as RateLimitOptions,
+      );
       app.use(limiter as ServerHandler);
       return;
     }
@@ -43,11 +47,13 @@ export class RateLimitModule extends BaseServerModule {
 }
 
 const createRateLimitMiddleware = (
-  options: RateLimitOptions,
+  options: Partial<RateLimitOptions>,
 ): ServerHandler => {
-  const windowMs = options?.windowMs ?? 8 * 60 * 1000;
+  const windowMsOption = options?.windowMs;
+  const windowMs = typeof windowMsOption === "number" ? windowMsOption : 8 * 60 * 1000;
   const legacyMax = (options as { max?: number } | undefined)?.max;
-  const limit = options?.limit ?? legacyMax ?? 100;
+  const limitOption = options?.limit ?? legacyMax;
+  const limit = typeof limitOption === "number" ? limitOption : 100;
   const hits = new Map<string, { count: number; expiresAt: number }>();
 
   return (req, res, next) => {
@@ -71,8 +77,13 @@ const createRateLimitMiddleware = (
     }
 
     if (current.count > limit) {
+      const message =
+        typeof options?.message === "string" ||
+        (typeof options?.message === "object" && options?.message)
+          ? options.message
+          : undefined;
       res.status(429).json(
-        options?.message || {
+        message || {
           message: "Too many requests, please try again later.",
         },
       );
