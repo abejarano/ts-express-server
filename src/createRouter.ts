@@ -1,16 +1,12 @@
-import {
-  normalizeRuntime,
-  ServerRuntime,
-  ServerRuntimeInput,
-  ServerRouter,
-} from "./abstract";
+import { ServerRuntime, ServerRouter } from "./abstract";
 import { BunAdapter, ExpressAdapter } from "./adapters";
 
 export const createRouter = (
-  runtime: ServerRuntimeInput = ServerRuntime.Express,
+  runtime: ServerRuntime = ServerRuntime.Express
 ): ServerRouter => {
-  if (normalizeRuntime(runtime) === ServerRuntime.Bun) {
+  if (runtime === ServerRuntime.Bun) {
     return new BunAdapter().createRouter();
   }
+
   return new ExpressAdapter().createRouter();
 };

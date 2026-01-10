@@ -3,17 +3,6 @@ export enum ServerRuntime {
   Bun = "bun",
 }
 
-export type ServerRuntimeInput = ServerRuntime | "express" | "bun";
-
-export const normalizeRuntime = (
-  runtime?: ServerRuntimeInput,
-): ServerRuntime => {
-  if (runtime && runtime !== ServerRuntime.Express && runtime !== "express") {
-    return ServerRuntime.Bun;
-  }
-  return ServerRuntime.Express;
-};
-
 export type NextFunction = (err?: unknown) => void;
 
 // Keep handler parameters loose to stay compatible with Express signatures.
@@ -43,10 +32,7 @@ export interface ServerResponse {
   end(body?: unknown): void | Promise<void>;
 }
 
-export type ServerHandlerInput =
-  | ServerHandler
-  | ServerHandler[]
-  | ServerRouter;
+export type ServerHandlerInput = ServerHandler | ServerHandler[] | ServerRouter;
 
 export interface ServerRouter {
   use(

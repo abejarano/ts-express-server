@@ -5,13 +5,11 @@ import {
   ServerContext,
   ServerInstance,
   ServerRuntime,
-  ServerRuntimeInput,
-  normalizeRuntime,
 } from "./abstract";
 import { BunAdapter, ExpressAdapter } from "./adapters";
 
 export interface BootstrapServerOptions {
-  runtime?: ServerRuntimeInput;
+  runtime?: ServerRuntime;
   adapter?: ServerAdapter;
 }
 
@@ -39,7 +37,7 @@ export class BootstrapServer {
 
   addModule(module: BaseServerModule): BootstrapServer {
     const existingModuleIndex = this.modules.findIndex(
-      (m) => m.getModuleName() === module.getModuleName(),
+      (m) => m.getModuleName() === module.getModuleName()
     );
 
     if (existingModuleIndex !== -1) {
@@ -55,7 +53,7 @@ export class BootstrapServer {
   addModules(modules: BaseServerModule[]): BootstrapServer {
     for (const module of modules) {
       const existingModuleIndex = this.modules.findIndex(
-        (m) => m.getModuleName() === module.getModuleName(),
+        (m) => m.getModuleName() === module.getModuleName()
       );
       if (existingModuleIndex !== -1) {
         // Replace existing module
@@ -125,7 +123,7 @@ export class BootstrapServer {
           } catch (error) {
             console.error(
               `Error shutting down module ${module.getModuleName()}:`,
-              error,
+              error
             );
           }
         }
@@ -165,7 +163,7 @@ export class BootstrapServer {
 
   // Convenience methods to access specific modules
   getModule<T extends BaseServerModule>(
-    moduleClass: new (...args: any[]) => T,
+    moduleClass: new (...args: any[]) => T
   ): T | undefined {
     return this.modules.find((m) => m instanceof moduleClass) as T | undefined;
   }
@@ -208,7 +206,7 @@ export class BootstrapServer {
       } catch (error) {
         console.error(
           `Failed to initialize module ${module.getModuleName()}:`,
-          error,
+          error
         );
         throw error;
       }
@@ -227,8 +225,8 @@ export class BootstrapServer {
     process.on("SIGTERM", () => shutdown("SIGTERM"));
   }
 
-  private createAdapter(runtime?: ServerRuntimeInput): ServerAdapter {
-    if (normalizeRuntime(runtime) === ServerRuntime.Bun) {
+  private createAdapter(runtime?: ServerRuntime): ServerAdapter {
+    if (runtime === ServerRuntime.Bun) {
       return new BunAdapter();
     }
     return new ExpressAdapter();

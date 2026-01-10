@@ -26,15 +26,20 @@ export class ControllersModule extends BaseServerModule {
 
   init(app: ServerApp, context?: ServerContext): void {
     this.controllers.forEach((ControllerClass) => {
-      const basePath: string = Reflect.getMetadata(
+      const basePath = Reflect.getMetadata<string>(
         MetadataKeys.BASE_PATH,
-        ControllerClass
+        ControllerClass,
       );
       const classMiddlewares =
-        Reflect.getMetadata(MetadataKeys.MIDDLEWARE, ControllerClass) || [];
+        Reflect.getMetadata<any[]>(
+          MetadataKeys.MIDDLEWARE,
+          ControllerClass,
+        ) || [];
       const routers: IRouter[] =
-        Reflect.getMetadata(MetadataKeys.ROUTERS, ControllerClass.prototype) ||
-        [];
+        Reflect.getMetadata<IRouter[]>(
+          MetadataKeys.ROUTERS,
+          ControllerClass.prototype,
+        ) || [];
 
       if (!basePath) {
         return;
@@ -54,17 +59,17 @@ export class ControllersModule extends BaseServerModule {
       routers.forEach(({ method, path, handlerName }) => {
         const routeHandler = (ControllerClass.prototype as any)[handlerName];
         const routeMiddlewares =
-          Reflect.getMetadata(
+          Reflect.getMetadata<any[]>(
             MetadataKeys.MIDDLEWARE,
             ControllerClass.prototype,
-            handlerName as string
+            handlerName as string,
           ) || [];
 
         const parameterMetadata: ParameterMetadata[] =
-          Reflect.getMetadata(
+          Reflect.getMetadata<ParameterMetadata[]>(
             MetadataKeys.PARAMETERS,
             ControllerClass.prototype,
-            handlerName as string
+            handlerName as string,
           ) || [];
 
         const routerMethod = (router as any)[method] as (

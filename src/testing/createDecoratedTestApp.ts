@@ -1,11 +1,7 @@
 import { BootstrapStandardServer } from "../BootstrapStandardServer";
 import type { BootstrapServer } from "../BootstrapServer";
 import { ControllersModule } from "../modules";
-import {
-  BaseServerService,
-  ServerApp,
-  ServerRuntimeInput,
-} from "../abstract";
+import { BaseServerService, ServerApp, ServerRuntime } from "../abstract";
 import { BootstrapStandardServerOptions } from "../BootstrapStandardServer";
 
 type ControllerClass<T = any> = new (...args: any[]) => T;
@@ -16,7 +12,7 @@ export interface DecoratedTestAppOptions {
   port?: number;
   services?: BaseServerService[];
   standardOptions?: BootstrapStandardServerOptions;
-  runtime?: ServerRuntimeInput;
+  runtime?: ServerRuntime;
 }
 
 export interface DecoratedTestAppResult {
@@ -27,7 +23,7 @@ export interface DecoratedTestAppResult {
 
 const mergeOptions = (
   base: BootstrapStandardServerOptions,
-  override?: BootstrapStandardServerOptions,
+  override?: BootstrapStandardServerOptions
 ): BootstrapStandardServerOptions => {
   if (!override) {
     return base;
@@ -49,7 +45,7 @@ const mergeOptions = (
 };
 
 export async function createDecoratedTestApp(
-  options: DecoratedTestAppOptions,
+  options: DecoratedTestAppOptions
 ): Promise<DecoratedTestAppResult> {
   const {
     controllers = [],
@@ -86,7 +82,9 @@ export async function createDecoratedTestApp(
     stop: async () => {
       const serverInstance = server.getServer();
       if (serverInstance) {
-        await new Promise<void>((resolve) => serverInstance.close(() => resolve()));
+        await new Promise<void>((resolve) =>
+          serverInstance.close(() => resolve())
+        );
       }
     },
   };

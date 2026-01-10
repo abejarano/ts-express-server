@@ -11,7 +11,7 @@ export function Use(middleware: ServerHandler | ServerHandler[]) {
     if (key) {
       // Method decorator
       const middlewares =
-        Reflect.getMetadata(MetadataKeys.MIDDLEWARE, target, key) || [];
+        Reflect.getMetadata<any[]>(MetadataKeys.MIDDLEWARE, target, key) || [];
       Reflect.defineMetadata(
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],
@@ -21,7 +21,7 @@ export function Use(middleware: ServerHandler | ServerHandler[]) {
     } else {
       // Class decorator
       const middlewares =
-        Reflect.getMetadata(MetadataKeys.MIDDLEWARE, target) || [];
+        Reflect.getMetadata<any[]>(MetadataKeys.MIDDLEWARE, target) || [];
       Reflect.defineMetadata(
         MetadataKeys.MIDDLEWARE,
         [...middlewares, ...newMiddlewares],

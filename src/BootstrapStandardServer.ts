@@ -8,14 +8,10 @@ import {
   RoutesModule,
   SecurityModule,
 } from "./modules";
-import {
-  BaseServerModule,
-  BaseServerService,
-  ServerRuntimeInput,
-} from "./abstract";
+import { BaseServerModule, BaseServerService, ServerRuntime } from "./abstract";
 
 export interface BootstrapStandardServerOptions {
-  runtime?: ServerRuntimeInput;
+  runtime?: ServerRuntime;
   modules?: {
     cors?: BaseServerModule | false;
     security?: BaseServerModule | false;
