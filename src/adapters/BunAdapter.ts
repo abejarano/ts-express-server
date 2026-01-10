@@ -29,6 +29,14 @@ class BunResponse implements ServerResponse {
   private body: BodyInit | null = null;
   private ended = false;
   private rawResponse?: Response;
+  private readonly endPromise: Promise<void>;
+  private resolveEnd?: () => void;
+
+  constructor() {
+    this.endPromise = new Promise<void>((resolve) => {
+      this.resolveEnd = resolve;
+    });
+  }
 
   status(code: number): this {
     this.statusCode = code;
@@ -50,24 +58,28 @@ class BunResponse implements ServerResponse {
     }
     this.body = JSON.stringify(body ?? null);
     this.ended = true;
+    this.resolveEnd?.();
   }
 
   send(body: unknown): void {
     if (body instanceof Response) {
       this.rawResponse = body;
       this.ended = true;
+      this.resolveEnd?.();
       return;
     }
 
     if (typeof body === "string" || body instanceof Uint8Array) {
       this.body = body;
       this.ended = true;
+      this.resolveEnd?.();
       return;
     }
 
     if (body === undefined) {
       this.body = null;
       this.ended = true;
+      this.resolveEnd?.();
       return;
     }
 
@@ -76,6 +88,7 @@ class BunResponse implements ServerResponse {
     }
     this.body = JSON.stringify(body);
     this.ended = true;
+    this.resolveEnd?.();
   }
 
   end(body?: unknown): void {
@@ -84,10 +97,15 @@ class BunResponse implements ServerResponse {
       return;
     }
     this.ended = true;
+    this.resolveEnd?.();
   }
 
   isEnded(): boolean {
     return this.ended;
+  }
+
+  waitForEnd(): Promise<void> {
+    return this.endPromise;
   }
 
   toResponse(): Response {
@@ -248,8 +266,9 @@ class BunRouter implements ServerRouter {
 
 class BunApp extends BunRouter implements ServerApp {
   createFetchHandler() {
-    return async (request: Request): Promise<Response> => {
-      const req = createRequest(request);
+    return async (request: Request, server?: any): Promise<Response> => {
+      const client = server?.requestIP?.(request);
+      const req = createRequest(request, client?.address);
       const res = new BunResponse();
 
       await this.handle(req, res, () => undefined);
@@ -329,7 +348,7 @@ const parseUrlEncodedBody: ServerHandler = async (req, _res, next) => {
   next();
 };
 
-function createRequest(request: Request): ServerRequest {
+function createRequest(request: Request, ipOverride?: string): ServerRequest {
   const url = new URL(request.url);
   const headers = toHeaderRecord(request.headers);
   const query = toQueryRecord(url.searchParams);
@@ -342,7 +361,7 @@ function createRequest(request: Request): ServerRequest {
     query,
     headers,
     cookies: parseCookies(headers.cookie),
-    ip: extractIp(headers),
+    ip: ipOverride || extractIp(headers),
     raw: request,
   };
 }
@@ -476,11 +495,16 @@ async function runHandlers(
 
     let nextCalled = false;
     let nextPromise: Promise<boolean> | undefined;
+    let resolveNext: (() => void) | undefined;
+    const nextSignal = new Promise<void>((resolve) => {
+      resolveNext = resolve;
+    });
     const wrappedNext: NextFunction = (nextErr?: unknown) => {
       if (nextErr) {
         throw nextErr;
       }
       nextCalled = true;
+      resolveNext?.();
       nextPromise = dispatch();
       return nextPromise as unknown as void;
     };
@@ -488,7 +512,13 @@ async function runHandlers(
     await handler(req, res, wrappedNext);
 
     if (!nextCalled) {
-      return false;
+      if (res.isEnded()) {
+        return false;
+      }
+      await Promise.race([nextSignal, res.waitForEnd()]);
+      if (!nextCalled || res.isEnded()) {
+        return false;
+      }
     }
 
     return nextPromise ? await nextPromise : true;

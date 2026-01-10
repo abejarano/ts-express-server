@@ -7,7 +7,7 @@
 - **RateLimitModule**: Implements rate limiting
 - **FileUploadModule**: Handles file uploads
 - **RequestContextModule**: Adds request correlation IDs
-- **RoutesModule**: Manages application routes
+- **RoutesModule**: Manages application routes (Express only; use decorators on Bun)
 - **ControllersModule**: Manages decorated controllers
 
 You can opt-out of any of these when using `BootstrapStandardServer` by passing configuration options, or replace them with your own implementations while still benefiting from the preset wiring.

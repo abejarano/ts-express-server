@@ -32,7 +32,13 @@ export class RoutesModule extends BaseServerModule {
     this.routes.push(...routes);
   }
 
-  init(app: ServerApp, _context?: ServerContext): void {
+  init(app: ServerApp, context?: ServerContext): void {
+    if (context?.runtime === "bun") {
+      console.warn(
+        "[RoutesModule] Express routers are not supported on Bun. Migrate to decorated controllers for Bun runtime.",
+      );
+    }
+
     this.routes.forEach(({ path, router, middleware }) => {
       const middlewareList = Array.isArray(middleware)
         ? middleware

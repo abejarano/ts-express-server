@@ -1,4 +1,3 @@
-import helmet from "helmet";
 import { BaseServerModule } from "../abstract";
 import {
   ServerApp,
@@ -6,14 +5,15 @@ import {
   ServerHandler,
   ServerRuntime,
 } from "../abstract";
+import type { HelmetOptions } from "helmet";
 
 export class SecurityModule extends BaseServerModule {
   name = "Security";
   priority = -80;
 
-  private readonly helmetOptions: Parameters<typeof helmet>[0];
+  private readonly helmetOptions: HelmetOptions;
 
-  constructor(helmetOptions?: Parameters<typeof helmet>[0]) {
+  constructor(helmetOptions?: HelmetOptions) {
     super();
     this.helmetOptions = helmetOptions || {
       contentSecurityPolicy: false,
@@ -40,6 +40,7 @@ export class SecurityModule extends BaseServerModule {
   init(app: ServerApp, context?: ServerContext): void {
     const runtime = context?.runtime ?? ServerRuntime.Express;
     if (runtime === ServerRuntime.Express) {
+      const helmet = require("helmet") as typeof import("helmet");
       app.use(helmet(this.helmetOptions) as ServerHandler);
       return;
     }
@@ -48,9 +49,7 @@ export class SecurityModule extends BaseServerModule {
   }
 }
 
-const createSecurityMiddleware = (
-  options: Parameters<typeof helmet>[0],
-): ServerHandler => {
+const createSecurityMiddleware = (options: HelmetOptions): ServerHandler => {
   return (_req, res, next) => {
     if (options?.frameguard?.action) {
       res.set("x-frame-options", options.frameguard.action.toUpperCase());

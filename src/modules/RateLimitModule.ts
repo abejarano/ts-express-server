@@ -6,15 +6,15 @@ import {
   ServerRuntime,
 } from "../abstract";
 
-import rateLimit from "express-rate-limit";
+import type { Options as RateLimitOptions } from "express-rate-limit";
 
 export class RateLimitModule extends BaseServerModule {
   name = "RateLimit";
   priority = -70;
 
-  private limiterOptions: Parameters<typeof rateLimit>[0];
+  private limiterOptions: RateLimitOptions;
 
-  constructor(limiterOptions?: Parameters<typeof rateLimit>[0]) {
+  constructor(limiterOptions?: RateLimitOptions) {
     super();
     this.limiterOptions = limiterOptions || {
       windowMs: 8 * 60 * 1000, // 8 minutes
@@ -31,6 +31,8 @@ export class RateLimitModule extends BaseServerModule {
   init(app: ServerApp, context?: ServerContext): void {
     const runtime = context?.runtime ?? ServerRuntime.Express;
     if (runtime === ServerRuntime.Express) {
+      const rateLimit =
+        require("express-rate-limit") as typeof import("express-rate-limit");
       const limiter = rateLimit(this.limiterOptions);
       app.use(limiter as ServerHandler);
       return;
@@ -41,7 +43,7 @@ export class RateLimitModule extends BaseServerModule {
 }
 
 const createRateLimitMiddleware = (
-  options: Parameters<typeof rateLimit>[0],
+  options: RateLimitOptions,
 ): ServerHandler => {
   const windowMs = options?.windowMs ?? 8 * 60 * 1000;
   const legacyMax = (options as { max?: number } | undefined)?.max;

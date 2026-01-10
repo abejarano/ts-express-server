@@ -22,6 +22,7 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x, 24.x]
+        runtime: [node, bun]
 
     steps:
       - name: Checkout code
@@ -32,15 +33,45 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "yarn"
+        if: matrix.runtime == 'node'
 
-      - name: Install dependencies
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.x"
+        if: matrix.runtime == 'bun'
+
+      - name: Install dependencies (Node)
         run: yarn install --frozen-lockfile
+        if: matrix.runtime == 'node'
+
+      - name: Install dependencies (Bun)
+        run: bun install --no-save
+        if: matrix.runtime == 'bun'
 
       - name: Build project
         run: yarn build
+        if: matrix.runtime == 'node'
+
+      - name: Build project (Bun)
+        run: bun run build
+        if: matrix.runtime == 'bun'
 
       - name: Run type checking
         run: yarn tsc --noEmit
+        if: matrix.runtime == 'node'
+
+      - name: Run type checking (Bun)
+        run: bun run typecheck
+        if: matrix.runtime == 'bun'
+
+      - name: Run tests (Node)
+        run: yarn test
+        if: matrix.runtime == 'node'
+
+      - name: Run tests (Bun)
+        run: bun test
+        if: matrix.runtime == 'bun'
 
   release:
     needs: test

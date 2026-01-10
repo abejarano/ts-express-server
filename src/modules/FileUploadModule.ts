@@ -1,4 +1,3 @@
-import fileUpload from "express-fileupload";
 import { BaseServerModule } from "../abstract";
 import {
   ServerApp,
@@ -7,14 +6,15 @@ import {
   ServerRequest,
   ServerRuntime,
 } from "../abstract";
+import type { Options as FileUploadOptions } from "express-fileupload";
 
 export class FileUploadModule extends BaseServerModule {
   name = "FileUpload";
   priority = -60;
 
-  private fileUploadOptions: fileUpload.Options;
+  private fileUploadOptions: FileUploadOptions;
 
-  constructor(fileUploadOptions?: fileUpload.Options) {
+  constructor(fileUploadOptions?: FileUploadOptions) {
     super();
     this.fileUploadOptions = fileUploadOptions || {
       limits: { fileSize: 50 * 1024 * 1024 },
@@ -30,6 +30,8 @@ export class FileUploadModule extends BaseServerModule {
   init(app: ServerApp, context?: ServerContext): void {
     const runtime = context?.runtime ?? ServerRuntime.Express;
     if (runtime === ServerRuntime.Express) {
+      const fileUpload =
+        require("express-fileupload") as typeof import("express-fileupload");
       app.use(fileUpload(this.fileUploadOptions) as ServerHandler);
       return;
     }
