@@ -1,4 +1,3 @@
-import { v4 } from "uuid";
 import { BaseServerModule } from "../abstract";
 import { NextFunction, ServerApp, ServerContext, ServerRequest } from "../abstract";
 import { AsyncLocalStorage } from "async_hooks";
@@ -8,7 +7,7 @@ export class RequestContextModule extends BaseServerModule {
   priority = -50;
 
   init(app: ServerApp, _context?: ServerContext): void {
-    const requestContextMiddleware = (
+    const requestContextMiddleware = async (
       req: ServerRequest,
       _res: unknown,
       next: NextFunction,
@@ -17,7 +16,7 @@ export class RequestContextModule extends BaseServerModule {
       const requestId =
         (Array.isArray(incomingRequestId)
           ? incomingRequestId[0]
-          : incomingRequestId) || v4();
+          : incomingRequestId) || (await createRequestId());
 
       req.requestId = requestId;
       RequestContext.run({ requestId }, () => {
@@ -57,3 +56,21 @@ class RequestContext {
 }
 
 export { RequestContext };
+
+const createRequestId = async (): Promise<string> => {
+  const cryptoObj = (globalThis as { crypto?: Crypto }).crypto;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+
+  try {
+    const uuidModule = (await import("uuid")) as { v4?: () => string };
+    if (uuidModule.v4) {
+      return uuidModule.v4();
+    }
+  } catch {
+    // Ignore and fallback.
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};

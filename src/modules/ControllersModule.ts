@@ -72,7 +72,7 @@ export class ControllersModule extends BaseServerModule {
             handlerName as string,
           ) || [];
 
-        const routerMethod = (router as any)[method] as (
+        const routerMethod = (router as any)[method]?.bind(router) as (
           path: string,
           ...handlers: any[]
         ) => void;
