@@ -25,31 +25,51 @@ type RouteLayer = {
 
 class BunResponse implements ServerResponse {
   private statusCode = 200;
+  private statusExplicitlySet = false;
   private headers = new Headers();
+  private setCookies: string[] = [];
   private body: unknown = null;
   private ended = false;
   private rawResponse?: Response;
+  private readonly cookieJar?: CookieMap;
+  private readonly handlerTimeoutMs?: number;
   private readonly endPromise: Promise<void>;
   private resolveEnd?: () => void;
 
-  constructor() {
+  constructor(cookieJar?: CookieMap, handlerTimeoutMs?: number) {
+    this.cookieJar = cookieJar;
+    this.handlerTimeoutMs = handlerTimeoutMs;
     this.endPromise = new Promise<void>((resolve) => {
       this.resolveEnd = resolve;
     });
   }
 
   status(code: number): this {
+    this.statusExplicitlySet = true;
     this.statusCode = code;
     return this;
   }
 
   set(name: string, value: string): this {
+    if (name.toLowerCase() === "set-cookie") {
+      this.setCookies.push(value);
+      return this;
+    }
     this.headers.set(name, value);
     return this;
   }
 
   header(name: string, value: string): this {
     return this.set(name, value);
+  }
+
+  cookie(name: string, value: string, options: CookieOptions = {}): this {
+    if (this.cookieJar && typeof this.cookieJar.set === "function") {
+      this.cookieJar.set(name, value, toCookieJarOptions(options));
+      return this;
+    }
+    this.setCookies.push(serializeCookie(name, value, options));
+    return this;
   }
 
   json(body: unknown): void {
@@ -108,14 +128,52 @@ class BunResponse implements ServerResponse {
     return this.endPromise;
   }
 
+  getHandlerTimeoutMs(): number | undefined {
+    return this.handlerTimeoutMs;
+  }
+
   toResponse(): Response {
     if (this.rawResponse) {
-      return this.rawResponse;
+      const headerMap = new Map<string, string>();
+      const setCookies = readSetCookieHeaders(this.rawResponse.headers);
+      this.rawResponse.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "set-cookie") {
+          return;
+        }
+        headerMap.set(key.toLowerCase(), value);
+      });
+      this.headers.forEach((value, key) => {
+        headerMap.set(key.toLowerCase(), value);
+      });
+      setCookies.push(...this.setCookies);
+
+      const headersInit: Array<[string, string]> = [];
+      headerMap.forEach((value, key) => {
+        headersInit.push([key, value]);
+      });
+      for (const cookie of setCookies) {
+        headersInit.push(["set-cookie", cookie]);
+      }
+
+      return new Response(this.rawResponse.body, {
+        status: this.statusExplicitlySet
+          ? this.statusCode
+          : this.rawResponse.status,
+        headers: headersInit,
+      });
+    }
+
+    const headersInit: Array<[string, string]> = [];
+    this.headers.forEach((value, key) => {
+      headersInit.push([key, value]);
+    });
+    for (const cookie of this.setCookies) {
+      headersInit.push(["set-cookie", cookie]);
     }
 
     return new Response(this.body as BodyInit | null, {
       status: this.statusCode,
-      headers: this.headers,
+      headers: headersInit,
     });
   }
 }
@@ -189,11 +247,39 @@ class BunRouter implements ServerRouter {
     ];
 
     let chainCompleted = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timedOut = false;
+    const timeoutMs = res.getHandlerTimeoutMs();
+    const timeoutPromise =
+      typeof timeoutMs === "number" && timeoutMs > 0
+        ? new Promise<boolean>((resolve) => {
+            timeoutId = setTimeout(() => {
+              timedOut = true;
+              if (!res.isEnded()) {
+                res.status(504).json({ message: "Handler timeout" });
+              }
+              resolve(false);
+            }, timeoutMs);
+          })
+        : null;
     try {
-      chainCompleted = await runHandlers(handlers, req, res);
+      chainCompleted = timeoutPromise
+        ? await Promise.race([runHandlers(handlers, req, res), timeoutPromise])
+        : await runHandlers(handlers, req, res);
     } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+      if (!res.isEnded()) {
+        res.status(500).json({ message: "Internal server error" });
+      }
       done(error);
+      return;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    if (timedOut) {
+      done();
       return;
     }
 
@@ -265,11 +351,28 @@ class BunRouter implements ServerRouter {
 }
 
 class BunApp extends BunRouter implements ServerApp {
+  private settings = new Map<string, unknown>();
+
+  set(key: string, value: unknown): void {
+    this.settings.set(key, value);
+  }
+
+  get(key: string): unknown {
+    return this.settings.get(key);
+  }
+
   createFetchHandler() {
     return async (request: Request, server?: any): Promise<Response> => {
       const client = server?.requestIP?.(request);
-      const req = createRequest(request, client?.address);
-      const res = new BunResponse();
+      const cookieJar = (request as unknown as { cookies?: CookieMap }).cookies;
+      const handlerTimeoutMs = this.get("handlerTimeoutMs");
+      const trustProxy = this.get("trustProxy") === true;
+      const ipOverride = trustProxy ? undefined : client?.address;
+      const req = createRequest(request, ipOverride);
+      const res = new BunResponse(
+        cookieJar,
+        typeof handlerTimeoutMs === "number" ? handlerTimeoutMs : undefined,
+      );
 
       await this.handle(req, res, () => undefined);
 
@@ -295,8 +398,9 @@ export class BunAdapter implements ServerAdapter {
 
   configure(app: ServerApp, _port: number): void {
     const bunApp = app as BunApp;
-    bunApp.use(parseJsonBody);
-    bunApp.use(parseUrlEncodedBody);
+    bunApp.use(createMultipartBodyParser(bunApp));
+    bunApp.use(createJsonBodyParser(bunApp));
+    bunApp.use(createUrlEncodedBodyParser(bunApp));
   }
 
   listen(app: ServerApp, port: number, onListen: () => void): ServerInstance {
@@ -315,7 +419,8 @@ export class BunAdapter implements ServerAdapter {
   }
 }
 
-const parseJsonBody: ServerHandler = async (req, _res, next) => {
+const createJsonBodyParser = (app: BunApp): ServerHandler => {
+  return async (req, res, next) => {
   if (!req.raw || req.body !== undefined) {
     return next();
   }
@@ -325,15 +430,25 @@ const parseJsonBody: ServerHandler = async (req, _res, next) => {
     return next();
   }
 
+  const limit = getBodyLimit(app);
+  const contentLength = parseContentLength(req.headers["content-length"]);
+  if (contentLength !== undefined && contentLength > limit) {
+    res.status(413).json({ message: "Payload too large" });
+    return;
+  }
+
   try {
     req.body = await (req.raw as Request).json();
   } catch {
-    req.body = undefined;
+    res.status(400).json({ message: "Invalid JSON" });
+    return;
   }
   next();
+  };
 };
 
-const parseUrlEncodedBody: ServerHandler = async (req, _res, next) => {
+const createUrlEncodedBodyParser = (app: BunApp): ServerHandler => {
+  return async (req, res, next) => {
   if (!req.raw || req.body !== undefined) {
     return next();
   }
@@ -343,9 +458,92 @@ const parseUrlEncodedBody: ServerHandler = async (req, _res, next) => {
     return next();
   }
 
+  const limit = getBodyLimit(app);
+  const contentLength = parseContentLength(req.headers["content-length"]);
+  if (contentLength !== undefined && contentLength > limit) {
+    res.status(413).json({ message: "Payload too large" });
+    return;
+  }
+
   const text = await (req.raw as Request).text();
   req.body = Object.fromEntries(new URLSearchParams(text));
   next();
+  };
+};
+
+const createMultipartBodyParser = (app: BunApp): ServerHandler => {
+  return async (req, res, next) => {
+  if (!req.raw || req.body !== undefined) {
+    return next();
+  }
+
+  const contentType = String(req.headers["content-type"] || "");
+  if (!contentType.includes("multipart/form-data")) {
+    return next();
+  }
+
+  const options = normalizeMultipartOptions(app.get("multipart"));
+  const lengthHeader = req.headers["content-length"];
+  const contentLength = parseContentLength(lengthHeader);
+  if (contentLength !== undefined && contentLength > options.maxBodyBytes) {
+    res.status(413).json({ message: "Payload too large" });
+    return;
+  }
+
+  try {
+    const formData = await (req.raw as Request).formData();
+    const fields: Record<string, string | string[]> = {};
+    const files: Record<string, MultipartFile[]> = {};
+    let fileCount = 0;
+
+    for (const [key, value] of formData.entries()) {
+      if (isFile(value)) {
+        if (value.size > options.maxFileBytes) {
+          res.status(413).json({ message: "Payload too large" });
+          return;
+        }
+        if (!isMimeAllowed(value.type, options.allowedMimeTypes)) {
+          res.status(415).json({ message: "Unsupported media type" });
+          return;
+        }
+        fileCount += 1;
+        if (fileCount > options.maxFiles) {
+          res.status(413).json({ message: "Payload too large" });
+          return;
+        }
+        const bucket = files[key];
+        if (bucket) {
+          bucket.push(value);
+        } else {
+          files[key] = [value];
+        }
+        continue;
+      }
+
+      const existing = fields[key];
+      const textValue = String(value);
+      if (existing === undefined) {
+        fields[key] = textValue;
+      } else if (Array.isArray(existing)) {
+        existing.push(textValue);
+      } else {
+        fields[key] = [existing, textValue];
+      }
+    }
+
+    if (Object.keys(fields).length > 0) {
+      req.body = fields;
+    }
+    if (Object.keys(files).length > 0) {
+      req.files = files;
+    }
+  } catch {
+    res.status(400).json({ message: "Invalid multipart form data" });
+    return;
+  }
+
+  next();
+  };
 };
 
 function createRequest(request: Request, ipOverride?: string): ServerRequest {
@@ -389,6 +587,175 @@ function toQueryRecord(search: URLSearchParams): Record<string, string | string[
   return record;
 }
 
+type CookieOptions = {
+  maxAge?: number;
+  domain?: string;
+  path?: string;
+  expires?: Date;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "lax" | "strict" | "none";
+};
+
+type CookieMap = {
+  set(
+    name: string,
+    value: string,
+    options?: {
+      maxAge?: number;
+      domain?: string;
+      path?: string;
+      expires?: Date;
+      httpOnly?: boolean;
+      secure?: boolean;
+      sameSite?: "Lax" | "Strict" | "None";
+    },
+  ): void;
+  toSetCookieHeaders?(): string[];
+};
+
+type MultipartFile = {
+  name: string;
+  size: number;
+  type: string;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  lastModified?: number;
+};
+
+type MultipartOptions = {
+  maxBodyBytes: number;
+  maxFileBytes: number;
+  maxFiles: number;
+  allowedMimeTypes?: string[];
+};
+
+const DEFAULT_MULTIPART_OPTIONS: MultipartOptions = {
+  maxBodyBytes: 10 * 1024 * 1024,
+  maxFileBytes: 10 * 1024 * 1024,
+  maxFiles: 10,
+};
+
+function serializeCookie(
+  name: string,
+  value: string,
+  options: CookieOptions,
+): string {
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+
+  if (options.maxAge !== undefined) {
+    const maxAgeSeconds = Math.floor(options.maxAge / 1000);
+    parts.push(`Max-Age=${maxAgeSeconds}`);
+    if (!options.expires) {
+      parts.push(
+        `Expires=${new Date(Date.now() + options.maxAge).toUTCString()}`,
+      );
+    }
+  }
+  if (options.domain) {
+    parts.push(`Domain=${options.domain}`);
+  }
+  if (options.path) {
+    parts.push(`Path=${options.path}`);
+  }
+  if (options.expires) {
+    parts.push(`Expires=${options.expires.toUTCString()}`);
+  }
+  if (options.httpOnly) {
+    parts.push("HttpOnly");
+  }
+  if (options.secure || options.sameSite === "none") {
+    parts.push("Secure");
+  }
+  if (options.sameSite) {
+    const normalized =
+      options.sameSite === "none"
+        ? "None"
+        : options.sameSite === "strict"
+          ? "Strict"
+          : "Lax";
+    parts.push(`SameSite=${normalized}`);
+  }
+
+  return parts.join("; ");
+}
+
+function toCookieJarOptions(options: CookieOptions) {
+  const sameSite: "None" | "Strict" | "Lax" | undefined =
+    options.sameSite === "none"
+      ? "None"
+      : options.sameSite === "strict"
+        ? "Strict"
+        : options.sameSite === "lax"
+          ? "Lax"
+          : undefined;
+  const maxAge =
+    options.maxAge === undefined
+      ? undefined
+      : Math.floor(options.maxAge / 1000);
+
+  return {
+    maxAge,
+    domain: options.domain,
+    path: options.path,
+    expires: options.expires,
+    httpOnly: options.httpOnly,
+    secure: options.secure || options.sameSite === "none",
+    sameSite,
+  };
+}
+
+function getBodyLimit(app: BunApp): number {
+  return normalizeMultipartOptions(app.get("multipart")).maxBodyBytes;
+}
+
+function normalizeMultipartOptions(input: unknown): MultipartOptions {
+  if (!input || typeof input !== "object") {
+    return { ...DEFAULT_MULTIPART_OPTIONS };
+  }
+
+  const value = input as Partial<MultipartOptions>;
+  return {
+    maxBodyBytes:
+      value.maxBodyBytes ?? DEFAULT_MULTIPART_OPTIONS.maxBodyBytes,
+    maxFileBytes:
+      value.maxFileBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFileBytes,
+    maxFiles: value.maxFiles ?? DEFAULT_MULTIPART_OPTIONS.maxFiles,
+    allowedMimeTypes: value.allowedMimeTypes,
+  };
+}
+
+function isMimeAllowed(type: string, allowed?: string[]): boolean {
+  if (!allowed || allowed.length === 0) {
+    return true;
+  }
+  const normalized = type.toLowerCase();
+  for (const entry of allowed) {
+    const rule = entry.toLowerCase();
+    if (rule.endsWith("/*")) {
+      const prefix = rule.slice(0, -1);
+      if (normalized.startsWith(prefix)) {
+        return true;
+      }
+      continue;
+    }
+    if (normalized === rule) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isFile(value: unknown): value is MultipartFile {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  return (
+    typeof (value as MultipartFile).arrayBuffer === "function" &&
+    typeof (value as MultipartFile).name === "string" &&
+    typeof (value as MultipartFile).size === "number"
+  );
+}
+
 function parseCookies(cookieHeader?: string): Record<string, string> | undefined {
   if (!cookieHeader) {
     return undefined;
@@ -399,9 +766,62 @@ function parseCookies(cookieHeader?: string): Record<string, string> | undefined
     if (!name) {
       return;
     }
-    cookies[name] = decodeURIComponent(rest.join("="));
+    try {
+      cookies[name] = decodeURIComponent(rest.join("="));
+    } catch {
+      cookies[name] = rest.join("=");
+    }
   });
   return cookies;
+}
+
+function parseContentLength(
+  header: string | string[] | undefined,
+): number | undefined {
+  if (header === undefined) {
+    return undefined;
+  }
+  const value = Array.isArray(header) ? header[0] : header;
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function readSetCookieHeaders(headers: Headers): string[] {
+  const bunHeaders = headers as Headers & {
+    getSetCookie?: () => string[];
+    getAll?: (name: string) => string[];
+  };
+  const setCookieFromApi =
+    bunHeaders.getSetCookie?.() ?? bunHeaders.getAll?.("Set-Cookie");
+  if (setCookieFromApi && setCookieFromApi.length > 0) {
+    return setCookieFromApi;
+  }
+
+  const setCookies: string[] = [];
+  headers.forEach((value, key) => {
+    if (key.toLowerCase() === "set-cookie") {
+      setCookies.push(value);
+    }
+  });
+  return setCookies;
+}
+
+export function getFiles(
+  req: ServerRequest,
+  field: string,
+): MultipartFile[] {
+  const map = (req.files ?? {}) as Record<string, MultipartFile[]>;
+  return map[field] ?? [];
+}
+
+export function getFile(
+  req: ServerRequest,
+  field: string,
+): MultipartFile | undefined {
+  return getFiles(req, field)[0];
 }
 
 function extractIp(headers: Record<string, string>): string | undefined {

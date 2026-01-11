@@ -93,7 +93,9 @@ Available parameter decorators:
 
 Decorated parameters take precedence; any remaining parameters fallback to the standard `(req, res, next)` order for compatibility.
 
-In Bun runtime, `@UploadedFile` returns a `File` from `FormData` instead of the `express-fileupload` shape.
+In Bun runtime, `@UploadedFile` returns a `File` from `FormData` (use `.type` for MIME), while Express uses the `express-fileupload` shape (use `.mimetype`).
+In Bun runtime, `req.files` is always a map of arrays (`Record<string, File[]>`) even for single uploads; use `getFile(req, "field")` if you want the first file.
+In Bun runtime, `request.formData()` is not streaming; large uploads can be memory-heavy. Prefer direct-to-object-storage flows for big files.
 
 ## 4. End-to-End Example
 
@@ -127,12 +129,19 @@ export class ReportController {
       return;
     }
 
+    const file = uploadedFile as {
+      size: number;
+      type?: string;
+      mimetype?: string;
+    };
+    const mimeType = file.mimetype || file.type || "unknown";
+
     // Process the uploaded file and persist metadata as needed
     res.status(201).json({
       name: body.name,
       description: body.description,
-      size: uploadedFile.size,
-      mimeType: uploadedFile.mimetype,
+      size: file.size,
+      mimeType,
     });
   }
 }
@@ -151,6 +160,7 @@ Key takeaways from the example:
 - Values injected via `@Body`, `@Query`, `@Param`, and `@Headers` reflect the current `req` state; any middleware mutations run before decorators resolve.
 - When you inject `@Res()` or `@Next()`, you are responsible for completing the response or calling `next()`.
 - Strongly type your parameters (for example `@Body() body: CreateUserDto`) to maximize the benefits of TypeScript.
+- In Bun runtime, configure multipart limits and MIME allowlists with `app.set("multipart", { ... })` (see API Reference).
 
 ## 6. Mixing Legacy Routes and Controllers
 

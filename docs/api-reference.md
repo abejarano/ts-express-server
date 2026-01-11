@@ -56,6 +56,51 @@ When you only need to tweak modules, you can skip the services array and pass th
 - `start()`: Start the server
 - `gracefulShutdown()`: Perform graceful shutdown
 
+## Bun Runtime Configuration
+
+When running with `ServerRuntime.Bun`, you can configure multipart limits and MIME allowlists via `app.set`.
+
+```typescript
+app.set("multipart", {
+  maxBodyBytes: 20 * 1024 * 1024,
+  maxFileBytes: 5 * 1024 * 1024,
+  maxFiles: 3,
+  allowedMimeTypes: ["image/*", "application/pdf"],
+});
+```
+
+Other Bun settings:
+
+```typescript
+app.set("trustProxy", true); // prefer X-Forwarded-For/X-Real-IP
+app.set("handlerTimeoutMs", 30_000); // 0/undefined disables
+```
+
+Defaults (Bun):
+- `maxBodyBytes`: 10 MB
+- `maxFileBytes`: 10 MB
+- `maxFiles`: 10
+- `allowedMimeTypes`: allow all
+
+Cookies:
+- `req.cookies` is parsed from the incoming `cookie` header.
+- `res.cookie(name, value, options)` sets cookies; `maxAge` is milliseconds (Express-style). `sameSite: "none"` forces `secure: true`.
+- When using Bun CookieMap, `maxAge` is converted to seconds before setting (Bun expects seconds).
+
+Handler timeouts (Bun):
+- `handlerTimeoutMs` triggers a 504 response if middleware never calls `next()` or ends the response.
+
+Multipart note (Bun):
+- `request.formData()` is not streaming in Bun; payloads are fully buffered before parsing. This is fine for small/medium uploads but risky for large files or hostile traffic.
+- For large uploads, prefer direct-to-object-storage flows (S3/R2/MinIO) with signed URLs; keep the backend for signing and metadata validation.
+
+Uploads shape (Bun):
+- `req.files` is always `Record<string, File[]>` (array per field).
+- Use `getFile(req, "field")` for single uploads and `getFiles(req, "field")` for multiple.
+
+Response note (Bun):
+- If you `res.send(new Response(...))`, do not read/consume the Response body before sending; streamed bodies cannot be reused.
+
 ## BaseServerModule Properties
 
 - `name: string`: Module identifier

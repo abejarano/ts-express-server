@@ -29,6 +29,19 @@ export interface ServerResponse {
   send(body: unknown): void | Promise<void>;
   set(name: string, value: string): this;
   header(name: string, value: string): this;
+  cookie?(
+    name: string,
+    value: string,
+    options?: {
+      maxAge?: number;
+      domain?: string;
+      path?: string;
+      expires?: Date;
+      httpOnly?: boolean;
+      secure?: boolean;
+      sameSite?: "lax" | "strict" | "none";
+    },
+  ): this;
   end(body?: unknown): void | Promise<void>;
 }
 
