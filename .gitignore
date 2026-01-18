@@ -1,0 +1,14 @@
+# Node
+node_modules/
+dist/
+bun.lockb
+
+# Env
+.env
+.env.*
+
+# OS / editors
+.DS_Store
+*.log
+.idea/
+.vscode/

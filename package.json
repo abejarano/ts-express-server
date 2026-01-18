@@ -1,0 +1,58 @@
+{
+  "name": "bun-platform-kit",
+  "author": "angel bejarano / angel.bejarano@jaspesoft.com",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun run tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepare": "bun run build",
+    "prebuild": "bun run clean",
+    "format": "bun run prettier --write .",
+    "format:check": "bun run prettier --check .",
+    "typecheck": "bun run tsc --noEmit",
+    "prepack": "bun run build",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
+  },
+  "keywords": [
+    "server",
+    "framework",
+    "modular",
+    "decorators",
+    "platform",
+    "bun"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "helmet": "^8.1.0",
+    "reflect-metadata": "^0.2.2",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "bun-types": "^1.3.5",
+    "prettier": "^3.6.2",
+    "semantic-release": "^25.0.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "bun": ">=1.3.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abejarano/bun-platform-kit.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  }
+}
