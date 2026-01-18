@@ -1,25 +1,25 @@
 # Bun Platform Kit
 
-Un framework TypeScript para Bun, dev-friendly y enterprise-ready. Organiza APIs con modulos, servicios y controladores decorados, incluye middlewares esenciales listos para usar y mantiene tipado end-to-end sin friccion.
+A TypeScript framework for Bun, dev-friendly and enterprise-ready. Organize APIs with modules, services, and decorated controllers, ship essential middleware out of the box, and keep end-to-end typing without friction.
 
 ## Features
 
-- 🧩 **Arquitectura modular**: reemplaza o combina modulos sin acoplarte al core
-- 🚀 **Servicios de fondo**: inicia procesos y workers junto al servidor
-- 🧰 **Preset listo**: CORS, seguridad, rate limit, uploads y contexto de request
-- 🧭 **Prioridades claras**: control total del orden de inicializacion
-- 🔒 **Defaults seguros**: headers, limites y validaciones razonables
-- 🧪 **Testing simple**: helper para apps decoradas sin repetir bootstrap
-- 🛡️ **Type safety real**: tipado fuerte en request, response y decoradores
-- 🎯 **Decoradores claros**: rutas declarativas y faciles de mantener
+- 🧩 **Modular architecture**: add, replace, or disable modules without coupling to the core
+- 🚀 **Background services**: start processes and workers with `BaseServerService`
+- 🧰 **Standard preset**: CORS, security headers, in-memory rate limit, uploads, and request context
+- 🧭 **Clear priorities**: deterministic module initialization order
+- 🔒 **Safe defaults**: reasonable headers and limits out of the box
+- 🧪 **Simple testing**: helper for decorated apps without repeated bootstrap
+- 🛡️ **Real type safety**: strong typing on request, response, and decorators
+- 🎯 **Clean decorators**: declarative, easy-to-maintain routes
 
-## Beneficios
+## Benefits
 
-- ⚡ **Time-to-first-endpoint** rapido con el preset estandar
-- 🤝 **Consistencia de equipo** con patrones claros de modulos/servicios
-- 🧱 **Escalable**: agrega piezas sin reescribir el servidor
-- 🔍 **Observabilidad** basica con requestId y contexto por request
-- ✅ **Testing confiable** con helpers de bootstrap para pruebas
+- ⚡ **Fast time-to-first-endpoint** with the standard preset
+- 🤝 **Team consistency** with clear module/service patterns
+- 🧱 **Scalable**: add pieces without rewriting the server
+- 🔍 **Basic observability** with requestId and per-request context
+- ✅ **Reliable testing** with bootstrap helpers for tests
 
 ## Installation
 
@@ -40,7 +40,7 @@ bun add bun-platform-kit
 
 ## File uploads
 
-Uploads are disabled unless `FileUploadModule` is registered. Configure limits and MIME allowlists through the module:
+With `BunKitStandardServer`, uploads are enabled by default. If you use `BunKitServer` directly or disable the module, you need to register `FileUploadModule`. Configure limits and allowlists through the module:
 
 ```typescript
 import { FileUploadModule } from "bun-platform-kit";
