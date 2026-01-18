@@ -63,14 +63,5 @@ const createRequestId = async (): Promise<string> => {
     return cryptoObj.randomUUID();
   }
 
-  try {
-    const uuidModule = (await import("uuid")) as { v4?: () => string };
-    if (uuidModule.v4) {
-      return uuidModule.v4();
-    }
-  } catch {
-    // Ignore and fallback.
-  }
-
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };

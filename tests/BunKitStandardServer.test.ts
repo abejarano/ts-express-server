@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { BunKitStandardServer } from "../src/BunKitStandardServer";
 import { ControllersModule, FileUploadModule } from "../src/modules";
 import {
@@ -17,10 +17,6 @@ import {
   Res,
   UploadedFile,
 } from "../src/decorators";
-
-mock.module("uuid", () => ({
-  v4: () => "test-uuid",
-}));
 
 // Mock Service
 class MockService extends BaseServerService {
