@@ -22,7 +22,7 @@ interface BunKitStandardServerOptions {
   services?: BaseServerService[];
 }
 
-// Routes or controllers with optional services/options
+// Controllers with optional services/options
 function BunKitStandardServer(
   port: number,
   module: ControllersModule,
@@ -96,8 +96,8 @@ Response note (Bun):
 
 ## BaseServerModule Properties
 
-- `name: string`: Module identifier
 - `priority: number`: Initialization priority (default: 0)
+- `getModuleName(): string`: Module identifier
 - `init(app: ServerApp, context: ServerContext)`: Module initialization method
 - `shutdown()`: Optional cleanup method
 

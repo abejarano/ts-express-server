@@ -96,7 +96,7 @@ Available parameter decorators:
 Decorated parameters take precedence; any remaining parameters fallback to the standard `(req, res, next)` order for compatibility.
 
 `@UploadedFile` returns a `File` from `FormData` (use `.type` for MIME).
-In Bun runtime, `req.files` is always a map of arrays (`Record<string, File[]>`) even for single uploads; use `getFile(req, "field")` if you want the first file.
+In Bun runtime, `req.files` is a map of single files or arrays (`Record<string, File | File[]>`); use `getFile(req, "field")` for single uploads and `getFiles(req, "field")` for multiple.
 In Bun runtime, `request.formData()` is not streaming; large uploads can be memory-heavy. Prefer direct-to-object-storage flows for big files.
 
 ## 4. End-to-End Example

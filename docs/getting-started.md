@@ -62,7 +62,7 @@ server.start();
 The standard server includes:
 
 - **CorsModule**: Cross-Origin Resource Sharing configuration
-- **SecurityModule**: Security headers via Helmet
+- **SecurityModule**: Security headers (Helmet-style options)
 - **RateLimitModule**: Rate limiting protection
 - **FileUploadModule**: File upload handling
 - **RequestContextModule**: Request context and correlation IDs
@@ -92,7 +92,7 @@ const server = BunKitStandardServer(3000, controllers, {
 
 const serverWithCustomCors = BunKitStandardServer(
   Number(process.env.PORT ?? 8080),
-  routesModule(),
+  controllers,
   {
     modules: {
       cors: new CustomCorsModule(),
@@ -112,18 +112,21 @@ const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/myapp";
 
 const services = [new MongoDBService(mongoUri)];
 
-// Option 1: Legacy Routes + Services
-const server1 = BunKitStandardServer(port, routesModule, services);
+// Option 1: Controllers + Services
+const server1 = BunKitStandardServer(port, controllersModule, services);
 
-// Option 2: Decorated Controllers + Services
-const server2 = BunKitStandardServer(port, controllersModule, services);
+// Option 2: Controllers + Options
+const server2 = BunKitStandardServer(port, controllersModule, {
+  services,
+  modules: { rateLimit: false },
+});
 
-// Option 3: Both + Services
+// Option 3: Controllers + Services + Options
 const server3 = BunKitStandardServer(
   port,
-  routesModule,
   controllersModule,
-  services
+  services,
+  { modules: { fileUpload: false } },
 );
 ```
 
