@@ -64,10 +64,17 @@ new FileUploadModule({
 Other Bun settings:
 
 ```typescript
+app.set("trustProxy", 1); // Trust exactly the proxy directly in front of Bun
 app.set("trustProxy", ["127.0.0.1/8"]); // CIDR allowlist for proxies
-// app.set("trustProxy", (ip) => ip === "127.0.0.1"); // custom trust function
+// app.set("trustProxy", (ip, hop) => hop === 0 && ip === "127.0.0.1");
 app.set("handlerTimeoutMs", 30_000); // 0/undefined disables
 ```
+
+`trustProxy` resolves `req.ip` from right to left through `X-Forwarded-For` and
+stops at the first untrusted address. A numeric value trusts that many closest
+proxy hops. CIDR arrays and custom functions trust only matching hops. Do not
+trust every hop: proxies can preserve unverified values supplied at the left of
+the forwarded chain.
 
 Defaults (Bun):
 - `maxBodyBytes`: 10 MB

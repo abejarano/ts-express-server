@@ -1,4 +1,5 @@
 import { readFileSync, statSync } from "fs";
+import { BlockList, isIP } from "node:net";
 import path from "path";
 import {
   NextFunction,
@@ -997,9 +998,9 @@ function parseContentLength(
 }
 
 type TrustProxySetting =
-  | boolean
+  | number
   | string[]
-  | ((ip: string | undefined) => boolean);
+  | ((ip: string | undefined, hop: number) => boolean);
 
 type CookieDefaults = {
   applyTo?: "all" | "session";
@@ -1050,12 +1051,15 @@ export function getFile(
   return getFiles(req, field)[0];
 }
 
-function extractIp(headers: Record<string, string>): string | undefined {
+function extractForwardedIps(headers: Record<string, string>): string[] {
   const forwarded = headers["x-forwarded-for"];
   if (forwarded) {
-    return forwarded.split(",")[0]?.trim();
+    const ips = forwarded.split(",").map(normalizeIp);
+    return ips.every((ip): ip is string => ip !== undefined) ? ips : [];
   }
-  return headers["x-real-ip"];
+
+  const realIp = normalizeIp(headers["x-real-ip"]);
+  return realIp === undefined ? [] : [realIp];
 }
 
 function resolveClientIp(
@@ -1064,46 +1068,60 @@ function resolveClientIp(
   trustProxy?: TrustProxySetting,
 ): string | undefined {
   const normalizedRemote = normalizeIp(remoteAddress);
-  if (!trustProxy) {
+  if (normalizedRemote === undefined || trustProxy === undefined) {
     return normalizedRemote;
   }
-  if (trustProxy === true) {
-    return extractIp(headers) || normalizedRemote;
+
+  const forwardedIps = extractForwardedIps(headers);
+  let candidate = normalizedRemote;
+  let hop = 0;
+
+  for (let index = forwardedIps.length - 1; index >= 0; index -= 1) {
+    if (!isTrustedProxy(candidate, hop, trustProxy)) {
+      return candidate;
+    }
+
+    candidate = forwardedIps[index];
+    hop += 1;
   }
-  if (typeof trustProxy === "function") {
-    return trustProxy(normalizedRemote)
-      ? extractIp(headers) || normalizedRemote
-      : normalizedRemote;
-  }
-  const trusted = isTrustedProxy(normalizedRemote, trustProxy);
-  return trusted ? extractIp(headers) || normalizedRemote : normalizedRemote;
+
+  return candidate;
 }
 
 function normalizeIp(ip: string | undefined): string | undefined {
-  if (!ip) {
+  const value = ip?.trim();
+  if (!value) {
     return undefined;
   }
-  if (ip.includes(".") && ip.includes(":")) {
-    return ip.split(":")[0];
+
+  const mappedIpv4 = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i)?.[1];
+  if (mappedIpv4 !== undefined && isIP(mappedIpv4) === 4) {
+    return mappedIpv4;
   }
-  return ip;
+
+  return isIP(value) === 0 ? undefined : value;
 }
 
 function isTrustedProxy(
-  ip: string | undefined,
-  allowlist: string[],
+  ip: string,
+  hop: number,
+  trustProxy: TrustProxySetting,
 ): boolean {
-  if (!ip) {
-    return false;
+  if (typeof trustProxy === "number") {
+    return hop < trustProxy;
   }
-  for (const entry of allowlist) {
+  if (typeof trustProxy === "function") {
+    return trustProxy(ip, hop);
+  }
+
+  for (const entry of trustProxy) {
     if (entry.includes("/")) {
       if (matchesCidr(ip, entry)) {
         return true;
       }
       continue;
     }
-    if (entry === ip) {
+    if (normalizeIp(entry) === ip) {
       return true;
     }
   }
@@ -1111,37 +1129,37 @@ function isTrustedProxy(
 }
 
 function matchesCidr(ip: string, cidr: string): boolean {
-  const [range, bitsString] = cidr.split("/");
-  if (!range || !bitsString) {
+  const separator = cidr.lastIndexOf("/");
+  if (separator <= 0) {
     return false;
   }
-  if (range.includes(":") || ip.includes(":")) {
-    return range === ip;
-  }
-  const bits = Number(bitsString);
-  if (!Number.isFinite(bits) || bits < 0 || bits > 32) {
-    return false;
-  }
-  const ipValue = ipv4ToInt(ip);
-  const rangeValue = ipv4ToInt(range);
-  if (ipValue === null || rangeValue === null) {
-    return false;
-  }
-  const mask = bits === 0 ? 0 : ~((1 << (32 - bits)) - 1);
-  return (ipValue & mask) === (rangeValue & mask);
-}
 
-function ipv4ToInt(ip: string): number | null {
-  const parts = ip.split(".").map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255)) {
-    return null;
+  const range = normalizeIp(cidr.slice(0, separator));
+  const bitsString = cidr.slice(separator + 1);
+  const bits = Number(bitsString);
+  const ipVersion = isIP(ip);
+  const rangeVersion = range === undefined ? 0 : isIP(range);
+  const maxBits = ipVersion === 4 ? 32 : 128;
+
+  if (
+    range === undefined ||
+    ipVersion === 0 ||
+    ipVersion !== rangeVersion ||
+    !Number.isInteger(bits) ||
+    bits < 0 ||
+    bits > maxBits
+  ) {
+    return false;
   }
-  return (
-    (parts[0] << 24) +
-    (parts[1] << 16) +
-    (parts[2] << 8) +
-    parts[3]
-  ) >>> 0;
+
+  const family = ipVersion === 4 ? "ipv4" : "ipv6";
+  try {
+    const blockList = new BlockList();
+    blockList.addSubnet(range, bits, family);
+    return blockList.check(ip, family);
+  } catch {
+    return false;
+  }
 }
 
 function normalizePath(path: string): string {
@@ -1247,16 +1265,22 @@ function resolveCookieDefaults(input: unknown): CookieDefaults | undefined {
 
 function resolveTrustProxySetting(app: BunApp): TrustProxySetting | undefined {
   const input = app.get("trustProxy");
+  if (typeof input === "number") {
+    if (Number.isInteger(input) && input >= 0) {
+      return input;
+    }
+    throw new Error("Invalid trustProxy hop count. Use a non-negative integer.");
+  }
   if (typeof input === "boolean") {
     throw new Error(
-      "Invalid trustProxy boolean. Use a CIDR allowlist or a custom trust function instead.",
+      "Invalid trustProxy boolean. Use a hop count, CIDR allowlist, or custom trust function instead.",
     );
   }
   if (Array.isArray(input) && input.every((entry) => typeof entry === "string")) {
     return input as string[];
   }
   if (typeof input === "function") {
-    return input as (ip: string | undefined) => boolean;
+    return input as (ip: string | undefined, hop: number) => boolean;
   }
   return undefined;
 }
