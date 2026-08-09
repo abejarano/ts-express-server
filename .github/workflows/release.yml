@@ -60,8 +60,10 @@ jobs:
       - name: Setup Node.js (semantic-release)
         uses: actions/setup-node@v4
         with:
-          node-version: "22.14.0"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "24.x"
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install --global npm@^11.5.1
 
       - name: Install dependencies
         run: bun install --no-save
