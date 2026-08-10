@@ -1,5 +1,6 @@
-import { BaseServerModule, BaseServerService } from "./abstract";
 import {
+  BaseServerModule,
+  BaseServerService,
   ServerAdapter,
   ServerApp,
   ServerContext,
@@ -10,6 +11,7 @@ import { BunAdapter } from "./adapters";
 
 export interface BunKitServerOptions {
   adapter?: ServerAdapter;
+  hostname?: string;
 }
 
 export class BunKitServer {
@@ -25,7 +27,10 @@ export class BunKitServer {
     this.port = port;
     this.adapter = options?.adapter ?? new BunAdapter();
     this.runtime = this.adapter.runtime;
+
     this.app = this.adapter.createApp();
+    this.app.set?.("hostname", options?.hostname);
+
     this.adapter.configure(this.app, port);
   }
 
@@ -36,7 +41,7 @@ export class BunKitServer {
 
   addModule(module: BaseServerModule): BunKitServer {
     const existingModuleIndex = this.modules.findIndex(
-      (m) => m.getModuleName() === module.getModuleName()
+      (m) => m.getModuleName() === module.getModuleName(),
     );
 
     if (existingModuleIndex !== -1) {
@@ -52,7 +57,7 @@ export class BunKitServer {
   addModules(modules: BaseServerModule[]): BunKitServer {
     for (const module of modules) {
       const existingModuleIndex = this.modules.findIndex(
-        (m) => m.getModuleName() === module.getModuleName()
+        (m) => m.getModuleName() === module.getModuleName(),
       );
       if (existingModuleIndex !== -1) {
         // Replace existing module
@@ -122,7 +127,7 @@ export class BunKitServer {
           } catch (error) {
             console.error(
               `Error shutting down module ${module.getModuleName()}:`,
-              error
+              error,
             );
           }
         }
@@ -162,7 +167,7 @@ export class BunKitServer {
 
   // Convenience methods to access specific modules
   getModule<T extends BaseServerModule>(
-    moduleClass: new (...args: any[]) => T
+    moduleClass: new (...args: any[]) => T,
   ): T | undefined {
     return this.modules.find((m) => m instanceof moduleClass) as T | undefined;
   }
@@ -205,7 +210,7 @@ export class BunKitServer {
       } catch (error) {
         console.error(
           `Failed to initialize module ${module.getModuleName()}:`,
-          error
+          error,
         );
         throw error;
       }
@@ -223,5 +228,4 @@ export class BunKitServer {
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
   }
-
 }

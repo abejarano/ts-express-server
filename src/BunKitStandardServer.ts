@@ -1,21 +1,18 @@
 import { BunKitServer } from "./BunKitServer";
 import {
-  CorsModule,
   ControllersModule,
+  CorsModule,
   FileUploadModule,
   HealthModule,
   RateLimitModule,
   RequestContextModule,
   SecurityModule,
 } from "./modules";
-import {
-  BaseServerModule,
-  BaseServerService,
-  ServerAdapter,
-} from "./abstract";
+import { BaseServerModule, BaseServerService, ServerAdapter } from "./abstract";
 
 export interface BunKitStandardServerOptions {
   adapter?: ServerAdapter;
+  hostname?: string;
   modules?: {
     cors?: BaseServerModule | false;
     security?: BaseServerModule | false;
@@ -30,27 +27,27 @@ export interface BunKitStandardServerOptions {
 export function BunKitStandardServer(
   port: number,
   module: ControllersModule,
-  services?: BaseServerService[]
+  services?: BaseServerService[],
 ): BunKitServer;
 
 export function BunKitStandardServer(
   port: number,
   module: ControllersModule,
   services: BaseServerService[],
-  options: BunKitStandardServerOptions
+  options: BunKitStandardServerOptions,
 ): BunKitServer;
 
 export function BunKitStandardServer(
   port: number,
   module: ControllersModule,
-  options: BunKitStandardServerOptions
+  options: BunKitStandardServerOptions,
 ): BunKitServer;
 
 export function BunKitStandardServer(
   port: number,
   arg2: ControllersModule,
   arg3?: BaseServerService[] | BunKitStandardServerOptions,
-  arg4?: BunKitStandardServerOptions
+  arg4?: BunKitStandardServerOptions,
 ): BunKitServer {
   let controllersModule: ControllersModule;
   let services: BaseServerService[] | undefined;
@@ -66,10 +63,7 @@ export function BunKitStandardServer(
   };
 
   const processOptionalArg = (
-    value:
-      | BaseServerService[]
-      | BunKitStandardServerOptions
-      | undefined
+    value: BaseServerService[] | BunKitStandardServerOptions | undefined,
   ) => {
     if (!value) {
       return;
@@ -96,7 +90,7 @@ export function BunKitStandardServer(
   const preset = options?.modules;
   const registerModule = (
     factory: () => BaseServerModule,
-    override?: BaseServerModule | false
+    override?: BaseServerModule | false,
   ) => {
     if (override === false) {
       return;
@@ -117,6 +111,7 @@ export function BunKitStandardServer(
 
   const server = new BunKitServer(port, {
     adapter: options?.adapter,
+    hostname: options?.hostname,
   }).addModules(modulesToRegister);
 
   if (services) {

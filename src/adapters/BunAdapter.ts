@@ -2,6 +2,7 @@ import { readFileSync, statSync } from "fs";
 import { BlockList, isIP } from "node:net";
 import path from "path";
 import {
+  BunMultipartFile,
   NextFunction,
   ServerAdapter,
   ServerApp,
@@ -11,7 +12,6 @@ import {
   ServerResponse,
   ServerRouter,
   ServerRuntime,
-  BunMultipartFile,
 } from "../abstract/ServerTypes";
 
 declare const Bun: any;
@@ -465,7 +465,10 @@ class BunApp extends BunRouter implements ServerApp {
       const maxConcurrentRequests = Number(
         this.get("maxConcurrentRequests") ?? 0,
       );
-      if (maxConcurrentRequests > 0 && this.activeRequests >= maxConcurrentRequests) {
+      if (
+        maxConcurrentRequests > 0 &&
+        this.activeRequests >= maxConcurrentRequests
+      ) {
         return new Response(JSON.stringify({ message: "Server busy" }), {
           status: 503,
           headers: [["content-type", "application/json"]],
@@ -473,12 +476,12 @@ class BunApp extends BunRouter implements ServerApp {
       }
       this.activeRequests += 1;
       const req = createRequest(request, client?.address, trustProxy);
-    const res = new BunResponse(
-      cookieJar,
-      handlerTimeoutMs,
-      resolveCookieDefaults(this.get("cookieDefaults")),
-      resolveDownloadRoot(this.get("downloadRoot")),
-    );
+      const res = new BunResponse(
+        cookieJar,
+        handlerTimeoutMs,
+        resolveCookieDefaults(this.get("cookieDefaults")),
+        resolveDownloadRoot(this.get("downloadRoot")),
+      );
 
       try {
         await this.handle(req, res, () => undefined);
@@ -518,11 +521,15 @@ export class BunAdapter implements ServerAdapter {
 
   listen(app: ServerApp, port: number, onListen: () => void): ServerInstance {
     const bunApp = app as BunApp;
+    const hostname = bunApp.get("hostname") as string | undefined;
     const server = Bun.serve({
       port,
+      hostname,
       fetch: bunApp.createFetchHandler(),
     });
+
     onListen();
+
     return {
       close: (callback?: () => void) => {
         server.stop(true);
@@ -534,206 +541,209 @@ export class BunAdapter implements ServerAdapter {
 
 const createJsonBodyParser = (app: BunApp): ServerHandler => {
   return async (req, res, next) => {
-  if (!req.raw || req.body !== undefined || req.files !== undefined) {
-    return next();
-  }
-
-  const method = String(req.method || "").toUpperCase();
-  if (method === "GET" || method === "HEAD") {
-    return next();
-  }
-
-  const contentType = String(req.headers["content-type"] || "");
-  if (!contentType.includes("application/json")) {
-    return next();
-  }
-
-  const limit = getBodyLimit(app);
-  const contentLength = parseContentLength(req.headers["content-length"]);
-  if (contentLength === 0) {
-    return next();
-  }
-  if (contentLength !== undefined && contentLength > limit) {
-    res.status(413).json({ message: "Payload too large" });
-    return;
-  }
-
-  try {
-    if (contentLength === undefined) {
-      const text = await readBodyTextWithLimit(req.raw as Request, limit);
-      req.body = JSON.parse(text);
-    } else {
-      req.body = await (req.raw as Request).json();
+    if (!req.raw || req.body !== undefined || req.files !== undefined) {
+      return next();
     }
-  } catch (error: any) {
-    if (error?.status === 413) {
+
+    const method = String(req.method || "").toUpperCase();
+    if (method === "GET" || method === "HEAD") {
+      return next();
+    }
+
+    const contentType = String(req.headers["content-type"] || "");
+    if (!contentType.includes("application/json")) {
+      return next();
+    }
+
+    const limit = getBodyLimit(app);
+    const contentLength = parseContentLength(req.headers["content-length"]);
+    if (contentLength === 0) {
+      return next();
+    }
+    if (contentLength !== undefined && contentLength > limit) {
       res.status(413).json({ message: "Payload too large" });
       return;
     }
-    res.status(400).json({ message: "Invalid JSON" });
-    return;
-  }
-  next();
+
+    try {
+      if (contentLength === undefined) {
+        const text = await readBodyTextWithLimit(req.raw as Request, limit);
+        req.body = JSON.parse(text);
+      } else {
+        req.body = await (req.raw as Request).json();
+      }
+    } catch (error: any) {
+      if (error?.status === 413) {
+        res.status(413).json({ message: "Payload too large" });
+        return;
+      }
+      res.status(400).json({ message: "Invalid JSON" });
+      return;
+    }
+    next();
   };
 };
 
 const createUrlEncodedBodyParser = (app: BunApp): ServerHandler => {
   return async (req, res, next) => {
-  if (!req.raw || req.body !== undefined) {
-    return next();
-  }
+    if (!req.raw || req.body !== undefined) {
+      return next();
+    }
 
-  const method = String(req.method || "").toUpperCase();
-  if (method === "GET" || method === "HEAD") {
-    return next();
-  }
+    const method = String(req.method || "").toUpperCase();
+    if (method === "GET" || method === "HEAD") {
+      return next();
+    }
 
-  const contentType = String(req.headers["content-type"] || "");
-  if (!contentType.includes("application/x-www-form-urlencoded")) {
-    return next();
-  }
+    const contentType = String(req.headers["content-type"] || "");
+    if (!contentType.includes("application/x-www-form-urlencoded")) {
+      return next();
+    }
 
-  const limit = getBodyLimit(app);
-  const contentLength = parseContentLength(req.headers["content-length"]);
-  if (contentLength !== undefined && contentLength > limit) {
-    res.status(413).json({ message: "Payload too large" });
-    return;
-  }
-
-  try {
-    const text =
-      contentLength === undefined
-        ? await readBodyTextWithLimit(req.raw as Request, limit)
-        : await (req.raw as Request).text();
-    req.body = Object.fromEntries(new URLSearchParams(text));
-  } catch (error: any) {
-    if (error?.status === 413) {
+    const limit = getBodyLimit(app);
+    const contentLength = parseContentLength(req.headers["content-length"]);
+    if (contentLength !== undefined && contentLength > limit) {
       res.status(413).json({ message: "Payload too large" });
       return;
     }
-    res.status(400).json({ message: "Invalid form data" });
-    return;
-  }
-  next();
+
+    try {
+      const text =
+        contentLength === undefined
+          ? await readBodyTextWithLimit(req.raw as Request, limit)
+          : await (req.raw as Request).text();
+      req.body = Object.fromEntries(new URLSearchParams(text));
+    } catch (error: any) {
+      if (error?.status === 413) {
+        res.status(413).json({ message: "Payload too large" });
+        return;
+      }
+      res.status(400).json({ message: "Invalid form data" });
+      return;
+    }
+    next();
   };
 };
 
 const createMultipartBodyParser = (app: BunApp): ServerHandler => {
   return async (req, res, next) => {
-  if (!req.raw || req.body !== undefined || req.files !== undefined) {
-    return next();
-  }
+    if (!req.raw || req.body !== undefined || req.files !== undefined) {
+      return next();
+    }
 
-  const contentType = String(req.headers["content-type"] || "");
-  if (!contentType.includes("multipart/form-data")) {
-    return next();
-  }
+    const contentType = String(req.headers["content-type"] || "");
+    if (!contentType.includes("multipart/form-data")) {
+      return next();
+    }
 
-  if (app.get("fileUploadEnabled") !== true) {
-    res
-      .status(415)
-      .json({ message: "File uploads are disabled. Enable FileUploadModule." });
-    return;
-  }
+    if (app.get("fileUploadEnabled") !== true) {
+      res.status(415).json({
+        message: "File uploads are disabled. Enable FileUploadModule.",
+      });
+      return;
+    }
 
-  const options = normalizeMultipartOptions(app.get("multipart"));
-  const lengthHeader = req.headers["content-length"];
-  const contentLength = parseContentLength(lengthHeader);
-  // If content-length is missing, body size limits can't be enforced pre-read.
-  if (contentLength === undefined) {
-    res.status(411).json({ message: "Length required" });
-    return;
-  }
-  if (contentLength !== undefined && contentLength > options.maxBodyBytes) {
-    res.status(413).json({ message: "Payload too large" });
-    return;
-  }
+    const options = normalizeMultipartOptions(app.get("multipart"));
+    const lengthHeader = req.headers["content-length"];
+    const contentLength = parseContentLength(lengthHeader);
+    // If content-length is missing, body size limits can't be enforced pre-read.
+    if (contentLength === undefined) {
+      res.status(411).json({ message: "Length required" });
+      return;
+    }
+    if (contentLength !== undefined && contentLength > options.maxBodyBytes) {
+      res.status(413).json({ message: "Payload too large" });
+      return;
+    }
 
-  try {
-    const formData = await (req.raw as Request).formData();
-    const fields: Record<string, string | string[]> = {};
-    const files: Record<string, MultipartFile | MultipartFile[]> = {};
-    let fileCount = 0;
-    let fieldCount = 0;
-    let fieldBytes = 0;
+    try {
+      const formData = await (req.raw as Request).formData();
+      const fields: Record<string, string | string[]> = {};
+      const files: Record<string, MultipartFile | MultipartFile[]> = {};
+      let fileCount = 0;
+      let fieldCount = 0;
+      let fieldBytes = 0;
 
-    for (const [key, value] of formData.entries()) {
-      if (isFile(value)) {
-        if (value.size > options.maxFileBytes) {
-          res.status(413).json({ message: "Payload too large" });
-          return;
-        }
-        if (!isMimeAllowed(value.type, options.allowedMimeTypes)) {
-          res.status(415).json({ message: "Unsupported media type" });
-          return;
-        }
-        if (options.validateFile) {
-          const isValid = await options.validateFile(value);
-          if (!isValid) {
+      for (const [key, value] of formData.entries()) {
+        if (isFile(value)) {
+          if (value.size > options.maxFileBytes) {
+            res.status(413).json({ message: "Payload too large" });
+            return;
+          }
+          if (!isMimeAllowed(value.type, options.allowedMimeTypes)) {
             res.status(415).json({ message: "Unsupported media type" });
             return;
           }
-        }
-        if (options.allowedFileSignatures) {
-          const signatureAllowed = await isAllowedFileSignature(
-            value,
-            options.allowedFileSignatures,
-          );
-          if (!signatureAllowed) {
-            res.status(415).json({ message: "Unsupported media type" });
+          if (options.validateFile) {
+            const isValid = await options.validateFile(value);
+            if (!isValid) {
+              res.status(415).json({ message: "Unsupported media type" });
+              return;
+            }
+          }
+          if (options.allowedFileSignatures) {
+            const signatureAllowed = await isAllowedFileSignature(
+              value,
+              options.allowedFileSignatures,
+            );
+            if (!signatureAllowed) {
+              res.status(415).json({ message: "Unsupported media type" });
+              return;
+            }
+          }
+          fileCount += 1;
+          if (fileCount > options.maxFiles) {
+            res.status(413).json({ message: "Payload too large" });
             return;
           }
+          const existing = files[key];
+          if (!existing) {
+            files[key] = value;
+          } else if (Array.isArray(existing)) {
+            existing.push(value);
+          } else {
+            files[key] = [existing, value];
+          }
+          continue;
         }
-        fileCount += 1;
-        if (fileCount > options.maxFiles) {
+
+        const existing = fields[key];
+        const textValue = String(value);
+        fieldCount += 1;
+        if (fieldCount > options.maxFields) {
           res.status(413).json({ message: "Payload too large" });
           return;
         }
-        const existing = files[key];
-        if (!existing) {
-          files[key] = value;
+        const textBytes = Buffer.byteLength(textValue, "utf8");
+        fieldBytes += textBytes;
+        if (
+          textBytes > options.maxFieldBytes ||
+          fieldBytes > options.maxFieldsBytes
+        ) {
+          res.status(413).json({ message: "Payload too large" });
+          return;
+        }
+        if (existing === undefined) {
+          fields[key] = textValue;
         } else if (Array.isArray(existing)) {
-          existing.push(value);
+          existing.push(textValue);
         } else {
-          files[key] = [existing, value];
+          fields[key] = [existing, textValue];
         }
-        continue;
       }
 
-      const existing = fields[key];
-      const textValue = String(value);
-      fieldCount += 1;
-      if (fieldCount > options.maxFields) {
-        res.status(413).json({ message: "Payload too large" });
-        return;
+      if (Object.keys(fields).length > 0) {
+        req.body = fields;
       }
-      const textBytes = Buffer.byteLength(textValue, "utf8");
-      fieldBytes += textBytes;
-      if (textBytes > options.maxFieldBytes || fieldBytes > options.maxFieldsBytes) {
-        res.status(413).json({ message: "Payload too large" });
-        return;
+      if (Object.keys(files).length > 0) {
+        req.files = files;
       }
-      if (existing === undefined) {
-        fields[key] = textValue;
-      } else if (Array.isArray(existing)) {
-        existing.push(textValue);
-      } else {
-        fields[key] = [existing, textValue];
-      }
+    } catch {
+      res.status(400).json({ message: "Invalid multipart form data" });
+      return;
     }
 
-    if (Object.keys(fields).length > 0) {
-      req.body = fields;
-    }
-    if (Object.keys(files).length > 0) {
-      req.files = files;
-    }
-  } catch {
-    res.status(400).json({ message: "Invalid multipart form data" });
-    return;
-  }
-
-  next();
+    next();
   };
 };
 
@@ -768,7 +778,9 @@ function toHeaderRecord(headers: Headers): Record<string, string> {
   return record;
 }
 
-function toQueryRecord(search: URLSearchParams): Record<string, string | string[]> {
+function toQueryRecord(
+  search: URLSearchParams,
+): Record<string, string | string[]> {
   const record: Record<string, string | string[]> = {};
   for (const [key, value] of search.entries()) {
     const existing = record[key];
@@ -917,13 +929,12 @@ function normalizeMultipartOptions(input: unknown): MultipartOptions {
 
   const value = input as Partial<MultipartOptions>;
   return {
-    maxBodyBytes:
-      value.maxBodyBytes ?? DEFAULT_MULTIPART_OPTIONS.maxBodyBytes,
-    maxFileBytes:
-      value.maxFileBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFileBytes,
+    maxBodyBytes: value.maxBodyBytes ?? DEFAULT_MULTIPART_OPTIONS.maxBodyBytes,
+    maxFileBytes: value.maxFileBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFileBytes,
     maxFiles: value.maxFiles ?? DEFAULT_MULTIPART_OPTIONS.maxFiles,
     maxFields: value.maxFields ?? DEFAULT_MULTIPART_OPTIONS.maxFields,
-    maxFieldBytes: value.maxFieldBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFieldBytes,
+    maxFieldBytes:
+      value.maxFieldBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFieldBytes,
     maxFieldsBytes:
       value.maxFieldsBytes ?? DEFAULT_MULTIPART_OPTIONS.maxFieldsBytes,
     allowedMimeTypes: value.allowedMimeTypes,
@@ -964,7 +975,9 @@ function isFile(value: unknown): value is MultipartFile {
   );
 }
 
-function parseCookies(cookieHeader?: string): Record<string, string> | undefined {
+function parseCookies(
+  cookieHeader?: string,
+): Record<string, string> | undefined {
   if (!cookieHeader) {
     return undefined;
   }
@@ -1241,7 +1254,8 @@ function applyCookieDefaults(
     return options;
   }
   const applyTo = defaults.applyTo ?? "session";
-  const isSession = options.maxAge === undefined && options.expires === undefined;
+  const isSession =
+    options.maxAge === undefined && options.expires === undefined;
   if (applyTo !== "all" && !isSession) {
     return options;
   }
@@ -1269,14 +1283,19 @@ function resolveTrustProxySetting(app: BunApp): TrustProxySetting | undefined {
     if (Number.isInteger(input) && input >= 0) {
       return input;
     }
-    throw new Error("Invalid trustProxy hop count. Use a non-negative integer.");
+    throw new Error(
+      "Invalid trustProxy hop count. Use a non-negative integer.",
+    );
   }
   if (typeof input === "boolean") {
     throw new Error(
       "Invalid trustProxy boolean. Use a hop count, CIDR allowlist, or custom trust function instead.",
     );
   }
-  if (Array.isArray(input) && input.every((entry) => typeof entry === "string")) {
+  if (
+    Array.isArray(input) &&
+    input.every((entry) => typeof entry === "string")
+  ) {
     return input as string[];
   }
   if (typeof input === "function") {
@@ -1366,8 +1385,7 @@ async function isAllowedFileSignature(
   file: MultipartFile,
   allowed: Array<"png" | "jpg" | "jpeg" | "pdf">,
 ): Promise<boolean> {
-  const head =
-    typeof file.slice === "function" ? file.slice(0, 32) : file;
+  const head = typeof file.slice === "function" ? file.slice(0, 32) : file;
   const buffer = new Uint8Array(await head.arrayBuffer());
   for (const kind of allowed) {
     if (matchesSignature(buffer, kind)) {
